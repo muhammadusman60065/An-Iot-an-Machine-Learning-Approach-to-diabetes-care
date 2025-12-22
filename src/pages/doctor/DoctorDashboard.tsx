@@ -1,85 +1,55 @@
-import { Users, AlertTriangle, Calendar, Activity, TrendingUp, Clock } from "lucide-react";
+import { Users, AlertTriangle, Calendar, Activity, TrendingUp, Clock, Loader2 } from "lucide-react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import MetricCard from "@/components/dashboard/MetricCard";
 import AlertCard from "@/components/dashboard/AlertCard";
+import HealthStatusBadge from "@/components/dashboard/HealthStatusBadge";
+import SimulatedDataBanner from "@/components/dashboard/SimulatedDataBanner";
 import { Button } from "@/components/ui/button";
-
-// Mock data - will be replaced with Firebase data
-const mockStats = {
-  totalPatients: 48,
-  activeAlerts: 5,
-  todayAppointments: 8,
-  criticalPatients: 2,
-};
-
-const mockPatients = [
-  {
-    id: "1",
-    name: "John Smith",
-    age: 52,
-    lastReading: { glucose: 142, status: "warning" },
-    lastUpdate: "5 min ago",
-  },
-  {
-    id: "2",
-    name: "Mary Johnson",
-    age: 45,
-    lastReading: { glucose: 98, status: "normal" },
-    lastUpdate: "10 min ago",
-  },
-  {
-    id: "3",
-    name: "Robert Williams",
-    age: 67,
-    lastReading: { glucose: 185, status: "danger" },
-    lastUpdate: "2 min ago",
-  },
-  {
-    id: "4",
-    name: "Sarah Davis",
-    age: 38,
-    lastReading: { glucose: 110, status: "normal" },
-    lastUpdate: "15 min ago",
-  },
-];
-
-const mockAlerts = [
-  {
-    id: "1",
-    type: "critical" as const,
-    title: "Critical: High Glucose Alert",
-    message: "Patient Robert Williams has glucose level of 185 mg/dL, requires immediate attention.",
-    timestamp: "2 min ago",
-    isRead: false,
-  },
-  {
-    id: "2",
-    type: "warning" as const,
-    title: "Warning: Elevated Reading",
-    message: "Patient John Smith's glucose has been above normal range for 2 consecutive readings.",
-    timestamp: "15 min ago",
-    isRead: false,
-  },
-  {
-    id: "3",
-    type: "info" as const,
-    title: "New Patient Registration",
-    message: "A new patient has been assigned to your care. Review their medical history.",
-    timestamp: "1 hour ago",
-    isRead: true,
-  },
-];
+import { useFirebaseData } from "@/hooks/useFirebaseData";
+import { detectAnomalies } from "@/lib/anomalyDetection";
+import type { HealthStatus } from "@/types/health";
 
 const DoctorDashboard = () => {
-  const statusColors: Record<string, string> = {
-    normal: "bg-success text-success-foreground",
-    warning: "bg-warning text-warning-foreground",
-    danger: "bg-danger text-danger-foreground",
+  const { patients, alerts, isLoading, isSimulated } = useFirebaseData();
+
+  // Calculate stats from patients
+  const criticalPatients = patients.filter((p) => {
+    if (!p.lastReading) return false;
+    const anomaly = detectAnomalies(p.lastReading);
+    return anomaly.status === "critical";
+  });
+
+  const warningPatients = patients.filter((p) => {
+    if (!p.lastReading) return false;
+    const anomaly = detectAnomalies(p.lastReading);
+    return anomaly.status === "warning";
+  });
+
+  const getPatientStatus = (patient: typeof patients[0]): HealthStatus => {
+    if (!patient.lastReading) return "normal";
+    const anomaly = detectAnomalies(patient.lastReading);
+    return anomaly.status;
   };
+
+  if (isLoading) {
+    return (
+      <DashboardLayout role="doctor">
+        <div className="flex items-center justify-center h-64">
+          <div className="flex items-center gap-3">
+            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            <span className="text-muted-foreground">Loading patient data...</span>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout role="doctor">
       <div className="space-y-8">
+        {/* Simulated Data Banner */}
+        <SimulatedDataBanner isSimulated={isSimulated} />
+
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
@@ -100,31 +70,31 @@ const DoctorDashboard = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <MetricCard
             title="Total Patients"
-            value={mockStats.totalPatients}
+            value={patients.length}
             unit="patients"
             icon={Users}
             status="normal"
           />
           <MetricCard
             title="Active Alerts"
-            value={mockStats.activeAlerts}
+            value={alerts.filter((a) => !a.isRead).length}
             unit="alerts"
             icon={AlertTriangle}
-            status="warning"
+            status={alerts.filter((a) => !a.isRead).length > 0 ? "warning" : "normal"}
           />
           <MetricCard
-            title="Today's Appointments"
-            value={mockStats.todayAppointments}
-            unit="scheduled"
-            icon={Calendar}
-            status="normal"
+            title="Warning Patients"
+            value={warningPatients.length}
+            unit="need attention"
+            icon={Activity}
+            status={warningPatients.length > 0 ? "warning" : "normal"}
           />
           <MetricCard
             title="Critical Patients"
-            value={mockStats.criticalPatients}
+            value={criticalPatients.length}
             unit="require attention"
-            icon={Activity}
-            status="danger"
+            icon={AlertTriangle}
+            status={criticalPatients.length > 0 ? "danger" : "normal"}
           />
         </div>
 
@@ -133,11 +103,11 @@ const DoctorDashboard = () => {
           <div className="lg:col-span-2 bg-card rounded-2xl p-6 shadow-card">
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-heading text-xl font-semibold text-foreground">
-                Recent Patient Activity
+                Patient Readings (Real-time)
               </h2>
-              <a href="/doctor/patients" className="text-sm text-primary hover:underline">
-                View all
-              </a>
+              <span className="text-sm text-muted-foreground">
+                ML-Analyzed Status
+              </span>
             </div>
 
             <div className="overflow-x-auto">
@@ -148,57 +118,65 @@ const DoctorDashboard = () => {
                       Patient
                     </th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
-                      Last Glucose
+                      Glucose
                     </th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
-                      Status
+                      Heart Rate
                     </th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
-                      Last Update
+                      Temp
                     </th>
-                    <th className="text-right py-3 px-4"></th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                      ML Status
+                    </th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                      Updated
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {mockPatients.map((patient) => (
-                    <tr
-                      key={patient.id}
-                      className="border-b border-border/50 hover:bg-muted/50 transition-colors"
-                    >
-                      <td className="py-4 px-4">
-                        <div>
-                          <p className="font-medium text-foreground">{patient.name}</p>
-                          <p className="text-sm text-muted-foreground">Age: {patient.age}</p>
-                        </div>
-                      </td>
-                      <td className="py-4 px-4">
-                        <span className="font-semibold text-foreground">
-                          {patient.lastReading.glucose} mg/dL
-                        </span>
-                      </td>
-                      <td className="py-4 px-4">
-                        <span
-                          className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-                            statusColors[patient.lastReading.status]
-                          }`}
-                        >
-                          {patient.lastReading.status.charAt(0).toUpperCase() +
-                            patient.lastReading.status.slice(1)}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4">
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                          <Clock size={14} />
-                          {patient.lastUpdate}
-                        </div>
-                      </td>
-                      <td className="py-4 px-4 text-right">
-                        <Button variant="ghost" size="sm">
-                          View Details
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
+                  {patients.map((patient) => {
+                    const status = getPatientStatus(patient);
+                    return (
+                      <tr
+                        key={patient.id}
+                        className="border-b border-border/50 hover:bg-muted/50 transition-colors"
+                      >
+                        <td className="py-4 px-4">
+                          <div>
+                            <p className="font-medium text-foreground">{patient.name}</p>
+                            <p className="text-sm text-muted-foreground">Age: {patient.age}</p>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className="font-semibold text-foreground">
+                            {patient.lastReading?.glucose || "-"} mg/dL
+                          </span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className="text-foreground">
+                            {patient.lastReading?.heartRate || "-"} BPM
+                          </span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className="text-foreground">
+                            {patient.lastReading?.temperature || "-"}°C
+                          </span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <HealthStatusBadge status={status} size="sm" />
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <Clock size={14} />
+                            {patient.lastReading
+                              ? new Date(patient.lastReading.timestamp).toLocaleTimeString()
+                              : "-"}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -208,22 +186,33 @@ const DoctorDashboard = () => {
           <div className="bg-card rounded-2xl p-6 shadow-card">
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-heading text-xl font-semibold text-foreground">
-                Priority Alerts
+                ML-Generated Alerts
               </h2>
               <span className="px-2 py-1 bg-danger-light text-danger text-xs font-medium rounded-full">
-                {mockAlerts.filter((a) => !a.isRead).length} new
+                {alerts.filter((a) => !a.isRead).length} new
               </span>
             </div>
 
             <div className="space-y-3">
-              {mockAlerts.map((alert) => (
-                <AlertCard
-                  key={alert.id}
-                  {...alert}
-                  onDismiss={(id) => console.log("Dismiss", id)}
-                  onAction={(id) => console.log("Action", id)}
-                />
-              ))}
+              {alerts.length > 0 ? (
+                alerts.slice(0, 5).map((alert) => (
+                  <AlertCard
+                    key={alert.id}
+                    id={alert.id}
+                    type={alert.type}
+                    title={alert.title}
+                    message={alert.message}
+                    timestamp={new Date(alert.timestamp).toLocaleString()}
+                    isRead={alert.isRead}
+                    onDismiss={(id) => console.log("Dismiss", id)}
+                    onAction={(id) => console.log("Action", id)}
+                  />
+                ))
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  No active alerts
+                </div>
+              )}
             </div>
 
             <Button variant="outline" className="w-full mt-4">
@@ -240,7 +229,7 @@ const DoctorDashboard = () => {
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Button variant="outline" className="h-auto py-4 flex-col gap-2">
               <Users size={24} />
-              <span>Add Patient</span>
+              <span>View All Patients</span>
             </Button>
             <Button variant="outline" className="h-auto py-4 flex-col gap-2">
               <Calendar size={24} />

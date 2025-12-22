@@ -1,72 +1,71 @@
-import { Users, Activity, Server, AlertTriangle, TrendingUp, Database, Cpu, Wifi } from "lucide-react";
+import { Users, Activity, Server, AlertTriangle, TrendingUp, Database, Cpu, Wifi, Loader2 } from "lucide-react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import MetricCard from "@/components/dashboard/MetricCard";
 import HealthChart from "@/components/dashboard/HealthChart";
+import SimulatedDataBanner from "@/components/dashboard/SimulatedDataBanner";
 import { Button } from "@/components/ui/button";
-
-// Mock data
-const mockSystemStats = {
-  totalUsers: 156,
-  activeDevices: 89,
-  systemHealth: 99.8,
-  pendingAlerts: 12,
-};
-
-const mockUserBreakdown = [
-  { role: "Patients", count: 120, color: "bg-primary" },
-  { role: "Doctors", count: 28, color: "bg-info" },
-  { role: "Admins", count: 8, color: "bg-warning" },
-];
-
-const mockSystemActivity = [
-  { time: "00:00", value: 45 },
-  { time: "04:00", value: 32 },
-  { time: "08:00", value: 78 },
-  { time: "12:00", value: 95 },
-  { time: "16:00", value: 88 },
-  { time: "20:00", value: 72 },
-  { time: "24:00", value: 56 },
-];
-
-const mockRecentActivity = [
-  {
-    id: "1",
-    action: "New patient registered",
-    user: "John Doe",
-    time: "2 min ago",
-    type: "user",
-  },
-  {
-    id: "2",
-    action: "Device connected",
-    user: "ESP8266-Device-42",
-    time: "5 min ago",
-    type: "device",
-  },
-  {
-    id: "3",
-    action: "Critical alert triggered",
-    user: "ML Anomaly Detection",
-    time: "15 min ago",
-    type: "alert",
-  },
-  {
-    id: "4",
-    action: "Doctor assigned patient",
-    user: "Dr. Smith",
-    time: "30 min ago",
-    type: "user",
-  },
-  {
-    id: "5",
-    action: "System backup completed",
-    user: "System",
-    time: "1 hour ago",
-    type: "system",
-  },
-];
+import { useFirebaseData } from "@/hooks/useFirebaseData";
 
 const AdminDashboard = () => {
+  const { patients, alerts, isLoading, isSimulated } = useFirebaseData();
+
+  // Mock system stats
+  const mockUserBreakdown = [
+    { role: "Patients", count: patients.length || 120, color: "bg-primary" },
+    { role: "Doctors", count: 28, color: "bg-info" },
+    { role: "Admins", count: 8, color: "bg-warning" },
+  ];
+
+  const totalUsers = mockUserBreakdown.reduce((sum, item) => sum + item.count, 0);
+
+  const mockSystemActivity = [
+    { time: "00:00", value: 45 },
+    { time: "04:00", value: 32 },
+    { time: "08:00", value: 78 },
+    { time: "12:00", value: 95 },
+    { time: "16:00", value: 88 },
+    { time: "20:00", value: 72 },
+    { time: "24:00", value: 56 },
+  ];
+
+  const mockRecentActivity = [
+    {
+      id: "1",
+      action: "New patient registered",
+      user: "John Doe",
+      time: "2 min ago",
+      type: "user",
+    },
+    {
+      id: "2",
+      action: "IoT device connected",
+      user: "ESP8266-Device-42",
+      time: "5 min ago",
+      type: "device",
+    },
+    {
+      id: "3",
+      action: "ML alert triggered",
+      user: "Anomaly Detection",
+      time: "15 min ago",
+      type: "alert",
+    },
+    {
+      id: "4",
+      action: "Doctor assigned patient",
+      user: "Dr. Smith",
+      time: "30 min ago",
+      type: "user",
+    },
+    {
+      id: "5",
+      action: "Firebase sync completed",
+      user: "System",
+      time: "1 hour ago",
+      type: "system",
+    },
+  ];
+
   const activityIcons: Record<string, any> = {
     user: Users,
     device: Wifi,
@@ -81,9 +80,25 @@ const AdminDashboard = () => {
     system: "bg-info-light text-info",
   };
 
+  if (isLoading) {
+    return (
+      <DashboardLayout role="admin">
+        <div className="flex items-center justify-center h-64">
+          <div className="flex items-center gap-3">
+            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            <span className="text-muted-foreground">Loading system data...</span>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout role="admin">
       <div className="space-y-8">
+        {/* Simulated Data Banner */}
+        <SimulatedDataBanner isSimulated={isSimulated} />
+
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
@@ -110,7 +125,7 @@ const AdminDashboard = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <MetricCard
             title="Total Users"
-            value={mockSystemStats.totalUsers}
+            value={totalUsers}
             unit="registered"
             icon={Users}
             trend="up"
@@ -119,7 +134,7 @@ const AdminDashboard = () => {
           />
           <MetricCard
             title="Active IoT Devices"
-            value={mockSystemStats.activeDevices}
+            value={isSimulated ? 6 : 89}
             unit="online"
             icon={Cpu}
             trend="up"
@@ -128,7 +143,7 @@ const AdminDashboard = () => {
           />
           <MetricCard
             title="System Health"
-            value={mockSystemStats.systemHealth}
+            value={99.8}
             unit="%"
             icon={Activity}
             trend="stable"
@@ -137,10 +152,10 @@ const AdminDashboard = () => {
           />
           <MetricCard
             title="Pending Alerts"
-            value={mockSystemStats.pendingAlerts}
+            value={alerts.filter((a) => !a.isRead).length}
             unit="unresolved"
             icon={AlertTriangle}
-            status="warning"
+            status={alerts.filter((a) => !a.isRead).length > 0 ? "warning" : "normal"}
           />
         </div>
 
@@ -160,7 +175,7 @@ const AdminDashboard = () => {
                   <div className="h-2 bg-muted rounded-full overflow-hidden">
                     <div
                       className={`h-full ${item.color} rounded-full transition-all duration-500`}
-                      style={{ width: `${(item.count / mockSystemStats.totalUsers) * 100}%` }}
+                      style={{ width: `${(item.count / totalUsers) * 100}%` }}
                     />
                   </div>
                 </div>
@@ -170,7 +185,7 @@ const AdminDashboard = () => {
             <div className="mt-6 pt-6 border-t border-border">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Total</span>
-                <span className="font-semibold text-foreground">{mockSystemStats.totalUsers} users</span>
+                <span className="font-semibold text-foreground">{totalUsers} users</span>
               </div>
             </div>
           </div>
@@ -239,13 +254,13 @@ const AdminDashboard = () => {
                 </span>
               </div>
 
-              <div className="flex items-center justify-between p-4 bg-success-light rounded-xl">
+              <div className={`flex items-center justify-between p-4 rounded-xl ${isSimulated ? "bg-warning-light" : "bg-success-light"}`}>
                 <div className="flex items-center gap-3">
-                  <Database className="w-5 h-5 text-success" />
+                  <Database className={`w-5 h-5 ${isSimulated ? "text-warning" : "text-success"}`} />
                   <span className="font-medium text-foreground">Real-time Database</span>
                 </div>
-                <span className="px-2 py-1 bg-success text-success-foreground text-xs rounded-full">
-                  Synced
+                <span className={`px-2 py-1 text-xs rounded-full ${isSimulated ? "bg-warning text-warning-foreground" : "bg-success text-success-foreground"}`}>
+                  {isSimulated ? "Simulated" : "Synced"}
                 </span>
               </div>
 
@@ -259,13 +274,13 @@ const AdminDashboard = () => {
                 </span>
               </div>
 
-              <div className="flex items-center justify-between p-4 bg-warning-light rounded-xl">
+              <div className={`flex items-center justify-between p-4 rounded-xl ${isSimulated ? "bg-warning-light" : "bg-success-light"}`}>
                 <div className="flex items-center gap-3">
-                  <Wifi className="w-5 h-5 text-warning" />
+                  <Wifi className={`w-5 h-5 ${isSimulated ? "text-warning" : "text-success"}`} />
                   <span className="font-medium text-foreground">IoT Gateway</span>
                 </div>
-                <span className="px-2 py-1 bg-warning text-warning-foreground text-xs rounded-full">
-                  High Load
+                <span className={`px-2 py-1 text-xs rounded-full ${isSimulated ? "bg-warning text-warning-foreground" : "bg-success text-success-foreground"}`}>
+                  {isSimulated ? "Demo Mode" : "Online"}
                 </span>
               </div>
             </div>

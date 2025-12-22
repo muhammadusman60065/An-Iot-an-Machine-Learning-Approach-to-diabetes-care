@@ -1,141 +1,89 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff, User, Stethoscope, Shield, ArrowLeft } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import { Eye, EyeOff, ArrowLeft, Loader2, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Logo from "@/components/Logo";
 import { toast } from "@/hooks/use-toast";
-
-type UserRole = "patient" | "doctor" | "admin";
-
-const roleConfig = {
-  patient: {
-    icon: User,
-    title: "Patient",
-    description: "Monitor your health metrics",
-    color: "primary",
-    dashboardPath: "/patient/dashboard",
-  },
-  doctor: {
-    icon: Stethoscope,
-    title: "Doctor",
-    description: "Manage patient care",
-    color: "info",
-    dashboardPath: "/doctor/dashboard",
-  },
-  admin: {
-    icon: Shield,
-    title: "Administrator",
-    description: "System administration",
-    color: "warning",
-    dashboardPath: "/admin/dashboard",
-  },
-};
+import { useAuth } from "@/contexts/AuthContext";
 
 const Login = () => {
   const navigate = useNavigate();
-  const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
+  const { login, signup, googleLogin, user, userData } = useAuth();
+  
+  const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [formData, setFormData] = useState({
+    name: "",
     email: "",
     password: "",
   });
 
-  const handleRoleSelect = (role: UserRole) => {
-    setSelectedRole(role);
-  };
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedRole) return;
-
-    setIsLoading(true);
-    
-    // Simulate login - will be replaced with Firebase auth
-    setTimeout(() => {
-      setIsLoading(false);
-      localStorage.setItem("userRole", selectedRole);
-      localStorage.setItem("isAuthenticated", "true");
-      toast({
-        title: "Welcome back!",
-        description: `Logged in as ${roleConfig[selectedRole].title}`,
-      });
-      navigate(roleConfig[selectedRole].dashboardPath);
-    }, 1000);
-  };
-
-  if (!selectedRole) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="w-full max-w-4xl">
-          <div className="text-center mb-12">
-            <Logo size="lg" />
-            <h1 className="font-heading text-3xl font-bold text-foreground mt-6 mb-2">
-              Welcome to DiabetesCare
-            </h1>
-            <p className="text-muted-foreground">
-              Select your role to continue
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            {(Object.entries(roleConfig) as [UserRole, typeof roleConfig.patient][]).map(([role, config]) => {
-              const Icon = config.icon;
-              const bgColors: Record<string, string> = {
-                primary: "bg-primary-light hover:bg-primary/20",
-                info: "bg-info-light hover:bg-info/20",
-                warning: "bg-warning-light hover:bg-warning/20",
-              };
-              const iconColors: Record<string, string> = {
-                primary: "text-primary",
-                info: "text-info",
-                warning: "text-warning",
-              };
-
-              return (
-                <button
-                  key={role}
-                  onClick={() => handleRoleSelect(role)}
-                  className={`group p-8 rounded-2xl border-2 border-transparent bg-card shadow-card hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-${config.color}/30`}
-                >
-                  <div className={`w-16 h-16 ${bgColors[config.color]} rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300`}>
-                    <Icon className={`w-8 h-8 ${iconColors[config.color]}`} />
-                  </div>
-                  <h2 className="font-heading text-xl font-semibold text-foreground mb-2">
-                    {config.title}
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    {config.description}
-                  </p>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="text-center mt-8">
-            <Button variant="ghost" onClick={() => navigate("/")}>
-              <ArrowLeft size={16} />
-              Back to Home
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
+  // Redirect if already logged in
+  if (user && userData) {
+    const dashboardPath = userData.role === "admin" 
+      ? "/admin/dashboard" 
+      : userData.role === "doctor" 
+        ? "/doctor/dashboard" 
+        : "/patient/dashboard";
+    navigate(dashboardPath, { replace: true });
+    return null;
   }
 
-  const config = roleConfig[selectedRole];
-  const Icon = config.icon;
-  const bgColors: Record<string, string> = {
-    primary: "bg-primary-light",
-    info: "bg-info-light",
-    warning: "bg-warning-light",
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      if (isSignUp) {
+        if (!formData.name.trim()) {
+          throw new Error("Please enter your name");
+        }
+        await signup(formData.email, formData.password, formData.name);
+        toast({
+          title: "Account created!",
+          description: "Welcome to DiabetesCare",
+        });
+      } else {
+        await login(formData.email, formData.password);
+        toast({
+          title: "Welcome back!",
+          description: "Successfully logged in",
+        });
+      }
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Authentication failed";
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
-  const iconColors: Record<string, string> = {
-    primary: "text-primary",
-    info: "text-info",
-    warning: "text-warning",
+
+  const handleGoogleLogin = async () => {
+    setIsGoogleLoading(true);
+    try {
+      await googleLogin();
+      toast({
+        title: "Welcome!",
+        description: "Successfully signed in with Google",
+      });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Google sign-in failed";
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsGoogleLoading(false);
+    }
   };
 
   return (
@@ -155,35 +103,94 @@ const Login = () => {
           <p className="text-lg opacity-90 max-w-md">
             Real-time health monitoring powered by IoT sensors and machine learning algorithms.
           </p>
+          <div className="mt-8 space-y-3 text-sm opacity-80">
+            <p>✓ Real-time health monitoring</p>
+            <p>✓ ML-powered anomaly detection</p>
+            <p>✓ Role-based access control</p>
+            <p>✓ Secure Firebase integration</p>
+          </div>
         </div>
       </div>
 
       {/* Right Panel - Login Form */}
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
-          <button
-            onClick={() => setSelectedRole(null)}
+          <Link
+            to="/"
             className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8"
           >
             <ArrowLeft size={16} />
-            <span>Change role</span>
-          </button>
+            <span>Back to Home</span>
+          </Link>
 
-          <div className="flex items-center gap-4 mb-8">
-            <div className={`w-14 h-14 ${bgColors[config.color]} rounded-xl flex items-center justify-center`}>
-              <Icon className={`w-7 h-7 ${iconColors[config.color]}`} />
+          <div className="mb-8">
+            <h1 className="font-heading text-2xl font-bold text-foreground">
+              {isSignUp ? "Create your account" : "Welcome back"}
+            </h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              {isSignUp 
+                ? "Sign up to start monitoring your health" 
+                : "Sign in to access your dashboard"}
+            </p>
+          </div>
+
+          {/* Google Sign In Button */}
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full mb-4"
+            onClick={handleGoogleLogin}
+            disabled={isGoogleLoading}
+          >
+            {isGoogleLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+            ) : (
+              <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
+                <path
+                  fill="currentColor"
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                />
+                <path
+                  fill="currentColor"
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                />
+                <path
+                  fill="currentColor"
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                />
+                <path
+                  fill="currentColor"
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                />
+              </svg>
+            )}
+            Continue with Google
+          </Button>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-border"></div>
             </div>
-            <div>
-              <h1 className="font-heading text-2xl font-bold text-foreground">
-                {config.title} Login
-              </h1>
-              <p className="text-muted-foreground text-sm">
-                {config.description}
-              </p>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">Or continue with email</span>
             </div>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {isSignUp && (
+              <div className="space-y-2">
+                <Label htmlFor="name">Full Name</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Enter your full name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  required={isSignUp}
+                />
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -206,6 +213,7 @@ const Login = () => {
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   required
+                  minLength={6}
                 />
                 <button
                   type="button"
@@ -215,29 +223,50 @@ const Login = () => {
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
+              {isSignUp && (
+                <p className="text-xs text-muted-foreground">Password must be at least 6 characters</p>
+              )}
             </div>
 
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2">
-                <input type="checkbox" className="rounded border-input" />
-                <span className="text-sm text-muted-foreground">Remember me</span>
-              </label>
-              <a href="#" className="text-sm text-primary hover:underline">
-                Forgot password?
-              </a>
-            </div>
+            {!isSignUp && (
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" className="rounded border-input" />
+                  <span className="text-sm text-muted-foreground">Remember me</span>
+                </label>
+              </div>
+            )}
 
             <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
-              {isLoading ? "Signing in..." : "Sign In"}
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  {isSignUp ? "Creating account..." : "Signing in..."}
+                </>
+              ) : (
+                <>
+                  <Mail className="w-4 h-4 mr-2" />
+                  {isSignUp ? "Create Account" : "Sign In"}
+                </>
+              )}
             </Button>
           </form>
 
           <p className="text-center mt-6 text-sm text-muted-foreground">
-            Don't have an account?{" "}
-            <a href="#" className="text-primary hover:underline font-medium">
-              Contact administrator
-            </a>
+            {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
+            <button 
+              onClick={() => setIsSignUp(!isSignUp)}
+              className="text-primary hover:underline font-medium"
+            >
+              {isSignUp ? "Sign in" : "Sign up"}
+            </button>
           </p>
+
+          {isSignUp && (
+            <p className="text-center mt-4 text-xs text-muted-foreground">
+              By signing up, new users are assigned the Patient role by default.
+            </p>
+          )}
         </div>
       </div>
     </div>

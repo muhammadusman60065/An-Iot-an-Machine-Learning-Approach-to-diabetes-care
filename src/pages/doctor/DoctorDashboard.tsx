@@ -1,4 +1,4 @@
-import { Users, AlertTriangle, Calendar, Activity, TrendingUp, Clock, Loader2 } from "lucide-react";
+import { Users, AlertTriangle, Calendar, Activity, TrendingUp, Clock, Loader2, User } from "lucide-react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import MetricCard from "@/components/dashboard/MetricCard";
 import AlertCard from "@/components/dashboard/AlertCard";
@@ -6,11 +6,13 @@ import HealthStatusBadge from "@/components/dashboard/HealthStatusBadge";
 import SimulatedDataBanner from "@/components/dashboard/SimulatedDataBanner";
 import { Button } from "@/components/ui/button";
 import { useFirebaseData } from "@/hooks/useFirebaseData";
+import { useAuth } from "@/contexts/AuthContext";
 import { detectAnomalies } from "@/lib/anomalyDetection";
 import type { HealthStatus, Patient } from "@/lib/anomalyDetection";
 
 const DoctorDashboard = () => {
   const { patients, alerts, isLoading, isSimulated } = useFirebaseData();
+  const { userData } = useAuth();
 
   const getPatientStatus = (patient: Patient): HealthStatus => {
     if (!patient.lastReading) return "normal";
@@ -38,10 +40,28 @@ const DoctorDashboard = () => {
 
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
-            <h1 className="font-heading text-2xl lg:text-3xl font-bold text-foreground">Doctor Dashboard</h1>
+            <h1 className="font-heading text-2xl lg:text-3xl font-bold text-foreground">
+              Welcome, Dr. {userData?.name || "Doctor"}
+            </h1>
             <p className="text-muted-foreground mt-1">Monitor and manage your patients' health</p>
           </div>
           <Button><Calendar size={18} className="mr-2" />Today's Schedule</Button>
+        </div>
+
+        {/* User Info Card */}
+        <div className="bg-card rounded-2xl p-6 shadow-card">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-full bg-info flex items-center justify-center">
+              <User className="w-7 h-7 text-white" />
+            </div>
+            <div>
+              <p className="text-lg font-semibold text-foreground">{userData?.name || "Doctor"}</p>
+              <p className="text-sm text-muted-foreground">{userData?.email}</p>
+              <span className="inline-block mt-1 px-3 py-1 text-xs rounded-full bg-info text-white capitalize">
+                {userData?.role || "doctor"}
+              </span>
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -1,4 +1,4 @@
-import { Activity, Heart, Thermometer, Droplets, Bell, Loader2 } from "lucide-react";
+import { Activity, Heart, Thermometer, Droplets, Bell, Loader2, User } from "lucide-react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import MetricCard from "@/components/dashboard/MetricCard";
 import AlertCard from "@/components/dashboard/AlertCard";
@@ -6,9 +6,11 @@ import HealthChart from "@/components/dashboard/HealthChart";
 import HealthStatusBadge from "@/components/dashboard/HealthStatusBadge";
 import SimulatedDataBanner from "@/components/dashboard/SimulatedDataBanner";
 import { useFirebaseData, HEALTH_THRESHOLDS } from "@/hooks/useFirebaseData";
+import { useAuth } from "@/contexts/AuthContext";
 
 const PatientDashboard = () => {
   const { currentReading, readingHistory, alerts, anomalyResult, isLoading, isSimulated } = useFirebaseData();
+  const { userData } = useAuth();
 
   const glucoseHistory = readingHistory.map((r) => ({
     time: new Date(r.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
@@ -47,13 +49,29 @@ const PatientDashboard = () => {
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
             <h1 className="font-heading text-2xl lg:text-3xl font-bold text-foreground">
-              Good {greeting}, Patient
+              Good {greeting}, {userData?.name || "Patient"}
             </h1>
             <p className="text-muted-foreground mt-1">Here's your health overview for today</p>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-sm text-muted-foreground">Overall Status:</span>
             {anomalyResult && <HealthStatusBadge status={anomalyResult.status} size="lg" />}
+          </div>
+        </div>
+
+        {/* User Info Card */}
+        <div className="bg-card rounded-2xl p-6 shadow-card">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center">
+              <User className="w-7 h-7 text-white" />
+            </div>
+            <div>
+              <p className="text-lg font-semibold text-foreground">{userData?.name || "Patient"}</p>
+              <p className="text-sm text-muted-foreground">{userData?.email}</p>
+              <span className="inline-block mt-1 px-3 py-1 text-xs rounded-full bg-primary text-white capitalize">
+                {userData?.role || "patient"}
+              </span>
+            </div>
           </div>
         </div>
 

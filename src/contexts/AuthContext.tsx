@@ -1,19 +1,18 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { User } from "firebase/auth";
-import { 
-  auth, 
-  onAuthStateChanged, 
-  getUserData, 
-  loginWithEmail, 
-  signupWithEmail, 
-  loginWithGoogle, 
-  logout,
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import {
+  AuthUser,
   UserData,
-  UserRole 
+  UserRole,
+  getUserData,
+  loginWithEmail,
+  loginWithGoogle,
+  logout,
+  onAuthUserChanged,
+  signupWithEmail,
 } from "@/lib/firebase";
 
 interface AuthContextType {
-  user: User | null;
+  user: AuthUser | null;
   userData: UserData | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
@@ -25,64 +24,59 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    const unsubscribe = onAuthUserChanged((firebaseUser) => {
       setUser(firebaseUser);
-      
-      if (firebaseUser) {
-        // Fetch user data from database
-        const data = await getUserData(firebaseUser.uid);
-        setUserData(data);
-      } else {
+
+      if (!firebaseUser) {
         setUserData(null);
+        setIsLoading(false);
+        return;
       }
-      
-      setIsLoading(false);
+
+      getUserData(firebaseUser.uid)
+        .then((data) => setUserData(data))
+        .finally(() => setIsLoading(false));
     });
 
     return () => unsubscribe();
   }, []);
 
   const login = async (email: string, password: string) => {
-    const user = await loginWithEmail(email, password);
-    const data = await getUserData(user.uid);
+    const u = await loginWithEmail(email, password);
+    setUser(u);
+    const data = await getUserData(u.uid);
     setUserData(data);
   };
 
   const signup = async (email: string, password: string, name: string) => {
-    const { userData: data } = await signupWithEmail(email, password, name);
+    const { user: u, userData: data } = await signupWithEmail(email, password, name);
+    setUser(u);
     setUserData(data);
   };
 
   const googleLogin = async () => {
-    const { userData: data } = await loginWithGoogle();
+    const { user: u, userData: data } = await loginWithGoogle();
+    setUser(u);
     setUserData(data);
   };
 
   const signOut = async () => {
     await logout();
+    setUser(null);
     setUserData(null);
   };
 
-  const value: AuthContextType = {
-    user,
-    userData,
-    isLoading,
-    login,
-    signup,
-    googleLogin,
-    signOut
-  };
-
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo<AuthContextType>(
+    () => ({ user, userData, isLoading, login, signup, googleLogin, signOut }),
+    [user, userData, isLoading]
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
@@ -93,4 +87,4 @@ export const useAuth = () => {
   return context;
 };
 
-export type { UserRole, UserData };
+export type { UserRole, UserData, AuthUser };

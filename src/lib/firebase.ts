@@ -1,16 +1,21 @@
 import { initializeApp } from "firebase/app";
 import { getDatabase, ref, onValue, push, set, get } from "firebase/database";
-import { 
-  getAuth, 
-  signInWithEmailAndPassword, 
+import {
+  getAuth,
+  signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signInWithPopup,
   GoogleAuthProvider,
-  signOut,
+  signOut as firebaseSignOut,
   onAuthStateChanged,
-  User
 } from "firebase/auth";
 import type { DatabaseReference } from "firebase/database";
+
+/**
+ * NOTE:
+ * This file intentionally exports simplified types (AuthUser) and casts Firebase SDK
+ * objects to `any` to avoid extremely deep type graphs that can crash some TS toolchains.
+ */
 
 const firebaseConfig = {
   apiKey: "AIzaSyC9ZpMm5wh3AqMche8vgddFUYCbkFjpsJQ",
@@ -19,14 +24,16 @@ const firebaseConfig = {
   projectId: "diabetescare-iot",
   storageBucket: "diabetescare-iot.appspot.com",
   messagingSenderId: "123456789",
-  appId: "1:123456789:web:abc123def456"
+  appId: "1:123456789:web:abc123def456",
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 export const database = getDatabase(app);
-export const auth = getAuth(app);
-const googleProvider = new GoogleAuthProvider();
+
+// Casts are deliberate: keep exported surface area type-light.
+export const auth: any = getAuth(app) as any;
+const googleProvider: any = new GoogleAuthProvider();
 
 // Database references
 export const sensorsRef = ref(database, "sensors");
@@ -34,7 +41,6 @@ export const patientsRef = ref(database, "patients");
 export const alertsRef = ref(database, "alerts");
 export const usersRef = ref(database, "users");
 
-// User role type
 export type UserRole = "patient" | "doctor" | "admin";
 
 export interface UserData {
@@ -45,89 +51,94 @@ export interface UserData {
   createdAt: string;
 }
 
-// Admin email constant
-const ADMIN_EMAIL = "admin@diabetescare.com";
-
-// Auth functions
-export const loginWithEmail = async (email: string, password: string) => {
-  const result = await signInWithEmailAndPassword(auth, email, password);
-  return result.user;
+export type AuthUser = {
+  uid: string;
+  email?: string | null;
+  displayName?: string | null;
 };
 
-export const signupWithEmail = async (email: string, password: string, name: string) => {
-  const result = await createUserWithEmailAndPassword(auth, email, password);
-  const user = result.user;
-  
-  // Determine role - admin@diabetescare.com gets admin role
+const ADMIN_EMAIL = "admin@diabetescare.com";
+
+const toAuthUser = (u: any): AuthUser => ({
+  uid: u?.uid,
+  email: u?.email ?? null,
+  displayName: u?.displayName ?? null,
+});
+
+export const onAuthUserChanged = (cb: (user: AuthUser | null) => void) => {
+  return onAuthStateChanged(auth, (u) => cb(u ? toAuthUser(u) : null));
+};
+
+export const loginWithEmail = async (email: string, password: string): Promise<AuthUser> => {
+  const result: any = await signInWithEmailAndPassword(auth, email, password);
+  return toAuthUser(result.user);
+};
+
+export const signupWithEmail = async (
+  email: string,
+  password: string,
+  name: string
+): Promise<{ user: AuthUser; userData: UserData }> => {
+  const result: any = await createUserWithEmailAndPassword(auth, email, password);
+  const user = toAuthUser(result.user);
+
   const role: UserRole = user.email === ADMIN_EMAIL ? "admin" : "patient";
-  
-  // Store user data in Realtime Database
+
   const userData: UserData = {
     uid: user.uid,
-    name: name,
-    email: user.email || email,
-    role: role,
-    createdAt: new Date().toISOString()
+    name,
+    email,
+    role,
+    createdAt: new Date().toISOString(),
   };
-  
+
   await set(ref(database, `users/${user.uid}`), userData);
-  
+
   return { user, userData };
 };
 
-export const loginWithGoogle = async () => {
-  const result = await signInWithPopup(auth, googleProvider);
-  const user = result.user;
-  
-  // Check if user exists in database
+export const loginWithGoogle = async (): Promise<{ user: AuthUser; userData: UserData }> => {
+  const result: any = await signInWithPopup(auth, googleProvider);
+  const user = toAuthUser(result.user);
+
   const userRef = ref(database, `users/${user.uid}`);
   const snapshot = await get(userRef);
-  
+
   if (!snapshot.exists()) {
-    // New user - determine role
     const role: UserRole = user.email === ADMIN_EMAIL ? "admin" : "patient";
-    
+
     const userData: UserData = {
       uid: user.uid,
       name: user.displayName || "User",
       email: user.email || "",
-      role: role,
-      createdAt: new Date().toISOString()
+      role,
+      createdAt: new Date().toISOString(),
     };
-    
+
     await set(userRef, userData);
     return { user, userData };
   }
-  
+
   return { user, userData: snapshot.val() as UserData };
 };
 
-export const logout = async () => {
-  await signOut(auth);
+export const logout = async (): Promise<void> => {
+  await firebaseSignOut(auth);
 };
 
 export const getUserData = async (uid: string): Promise<UserData | null> => {
   const userRef = ref(database, `users/${uid}`);
   const snapshot = await get(userRef);
-  
-  if (snapshot.exists()) {
-    return snapshot.val() as UserData;
-  }
-  
-  return null;
+  return snapshot.exists() ? (snapshot.val() as UserData) : null;
 };
 
 export const getAllUsers = async (): Promise<UserData[]> => {
   const snapshot = await get(usersRef);
-  
-  if (snapshot.exists()) {
-    const usersObj = snapshot.val();
-    return Object.values(usersObj) as UserData[];
-  }
-  
-  return [];
+  if (!snapshot.exists()) return [];
+  const usersObj = snapshot.val();
+  return Object.values(usersObj) as UserData[];
 };
 
-// Helper functions
-export { onValue, ref, push, set, get, onAuthStateChanged };
-export type { DatabaseReference, User };
+// Re-export Realtime DB helpers
+export { onValue, ref, push, set, get };
+export type { DatabaseReference };

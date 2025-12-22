@@ -1,7 +1,7 @@
 import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { useAuth, UserRole } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
+import { useAuth, UserRole } from "@/contexts/AuthContext";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -26,13 +26,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
   }
 
   if (allowedRoles && userData && !allowedRoles.includes(userData.role)) {
-    // Redirect to appropriate dashboard based on role
-    const redirectPath = userData.role === "admin" 
-      ? "/admin/dashboard" 
-      : userData.role === "doctor" 
-        ? "/doctor/dashboard" 
-        : "/patient/dashboard";
-    
+    const redirectPath =
+      userData.role === "admin"
+        ? "/admin/dashboard"
+        : userData.role === "doctor"
+          ? "/doctor/dashboard"
+          : "/patient/dashboard";
+
     return <Navigate to={redirectPath} replace />;
   }
 

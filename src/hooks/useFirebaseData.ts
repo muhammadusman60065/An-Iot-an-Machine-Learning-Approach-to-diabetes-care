@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { database, sensorsRef, alertsRef, onValue, ref } from "@/lib/firebase";
-import { detectAnomalies, generateAlert } from "@/lib/anomalyDetection";
-import { SensorReading, HealthAlert, Patient, AnomalyResult, HEALTH_THRESHOLDS } from "@/types/health";
+import { detectAnomalies, generateAlert, HEALTH_THRESHOLDS } from "@/lib/anomalyDetection";
+import type { SensorReading, HealthAlert, Patient, AnomalyResult } from "@/lib/anomalyDetection";
 
 interface UseFirebaseDataReturn {
   currentReading: SensorReading | null;
@@ -14,7 +14,6 @@ interface UseFirebaseDataReturn {
   isSimulated: boolean;
 }
 
-// Generate simulated data for demo purposes
 function generateSimulatedReading(): SensorReading {
   return {
     userId: "demo-patient-1",
@@ -26,11 +25,10 @@ function generateSimulatedReading(): SensorReading {
   };
 }
 
-// Generate simulated historical data
-function generateHistoricalData(hours: number = 8): SensorReading[] {
+function generateHistoricalData(): SensorReading[] {
   const data: SensorReading[] = [];
   const now = Date.now();
-  const interval = (hours * 60 * 60 * 1000) / 8;
+  const interval = (8 * 60 * 60 * 1000) / 8;
 
   for (let i = 7; i >= 0; i--) {
     data.push({
@@ -45,33 +43,21 @@ function generateHistoricalData(hours: number = 8): SensorReading[] {
   return data;
 }
 
-// Generate simulated patients for doctor view
 function generateSimulatedPatients(): Patient[] {
-  const names = [
-    "John Smith",
-    "Mary Johnson",
-    "Robert Williams",
-    "Sarah Davis",
-    "Michael Brown",
-    "Emily Wilson",
-  ];
+  const names = ["John Smith", "Mary Johnson", "Robert Williams", "Sarah Davis", "Michael Brown", "Emily Wilson"];
 
-  return names.map((name, index) => {
-    const glucose = Math.floor(Math.random() * 100) + 70;
-
-    return {
-      id: `patient-${index + 1}`,
-      name,
-      age: Math.floor(Math.random() * 40) + 30,
-      lastReading: {
-        userId: `patient-${index + 1}`,
-        timestamp: Date.now() - Math.floor(Math.random() * 30) * 60000,
-        glucose,
-        heartRate: Math.floor(Math.random() * 30) + 65,
-        temperature: Number((Math.random() * 1 + 36.2).toFixed(1)),
-      },
-    };
-  });
+  return names.map((name, index) => ({
+    id: `patient-${index + 1}`,
+    name,
+    age: Math.floor(Math.random() * 40) + 30,
+    lastReading: {
+      userId: `patient-${index + 1}`,
+      timestamp: Date.now() - Math.floor(Math.random() * 30) * 60000,
+      glucose: Math.floor(Math.random() * 100) + 70,
+      heartRate: Math.floor(Math.random() * 30) + 65,
+      temperature: Number((Math.random() * 1 + 36.2).toFixed(1)),
+    },
+  }));
 }
 
 export function useFirebaseData(userId?: string): UseFirebaseDataReturn {
@@ -103,9 +89,7 @@ export function useFirebaseData(userId?: string): UseFirebaseDataReturn {
     let simulationInterval: ReturnType<typeof setInterval> | undefined;
 
     try {
-      const userSensorsRef = userId
-        ? ref(database, `sensors/${userId}`)
-        : sensorsRef;
+      const userSensorsRef = userId ? ref(database, `sensors/${userId}`) : sensorsRef;
 
       unsubscribeSensors = onValue(
         userSensorsRef,
@@ -115,21 +99,15 @@ export function useFirebaseData(userId?: string): UseFirebaseDataReturn {
           if (data) {
             setIsSimulated(false);
             const readings: SensorReading[] = Object.values(data);
-            const sortedReadings = readings.sort(
-              (a, b) => b.timestamp - a.timestamp
-            );
-
+            const sortedReadings = readings.sort((a, b) => b.timestamp - a.timestamp);
             const latest = sortedReadings[0];
             setCurrentReading(latest);
             setReadingHistory(sortedReadings.slice(0, 20));
             processReading(latest);
           } else {
-            console.log("No Firebase data found, using simulated data");
             setIsSimulated(true);
-
             const simulated = generateSimulatedReading();
             const history = generateHistoricalData();
-
             setCurrentReading(simulated);
             setReadingHistory(history);
             processReading(simulated);
@@ -141,14 +119,11 @@ export function useFirebaseData(userId?: string): UseFirebaseDataReturn {
               processReading(newReading);
             }, 10000);
           }
-
           setIsLoading(false);
         },
-        (err) => {
-          console.error("Firebase error:", err);
+        () => {
           setError("Failed to connect to database");
           setIsSimulated(true);
-
           const simulated = generateSimulatedReading();
           setCurrentReading(simulated);
           setReadingHistory(generateHistoricalData());
@@ -160,22 +135,18 @@ export function useFirebaseData(userId?: string): UseFirebaseDataReturn {
       unsubscribeAlerts = onValue(alertsRef, (snapshot) => {
         const data = snapshot.val();
         if (data) {
-          const alertList: HealthAlert[] = Object.entries(data).map(
-            ([key, value]) => ({
-              ...(value as HealthAlert),
-              id: key,
-            })
-          );
+          const alertList: HealthAlert[] = Object.entries(data).map(([key, value]) => ({
+            ...(value as HealthAlert),
+            id: key,
+          }));
           setAlerts(alertList.sort((a, b) => b.timestamp - a.timestamp));
         }
       });
 
       setPatients(generateSimulatedPatients());
     } catch (err) {
-      console.error("Error setting up Firebase listeners:", err);
       setError("Failed to initialize data connection");
       setIsSimulated(true);
-
       const simulated = generateSimulatedReading();
       setCurrentReading(simulated);
       setReadingHistory(generateHistoricalData());
@@ -190,16 +161,7 @@ export function useFirebaseData(userId?: string): UseFirebaseDataReturn {
     };
   }, [userId, processReading]);
 
-  return {
-    currentReading,
-    readingHistory,
-    alerts,
-    patients,
-    anomalyResult,
-    isLoading,
-    error,
-    isSimulated,
-  };
+  return { currentReading, readingHistory, alerts, patients, anomalyResult, isLoading, error, isSimulated };
 }
 
 export { HEALTH_THRESHOLDS };

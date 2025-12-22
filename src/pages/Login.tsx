@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Eye, EyeOff, ArrowLeft, Loader2, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,8 +10,8 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login, signup, googleLogin, user, userData } = useAuth();
-  
+  const { login, signup, googleLogin, user, userData, isLoading: authLoading } = useAuth();
+
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -22,16 +22,18 @@ const Login = () => {
     password: "",
   });
 
-  // Redirect if already logged in
-  if (user && userData) {
-    const dashboardPath = userData.role === "admin" 
-      ? "/admin/dashboard" 
-      : userData.role === "doctor" 
-        ? "/doctor/dashboard" 
-        : "/patient/dashboard";
+  useEffect(() => {
+    if (!user || !userData) return;
+
+    const dashboardPath =
+      userData.role === "admin"
+        ? "/admin/dashboard"
+        : userData.role === "doctor"
+          ? "/doctor/dashboard"
+          : "/patient/dashboard";
+
     navigate(dashboardPath, { replace: true });
-    return null;
-  }
+  }, [user, userData, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,28 +41,16 @@ const Login = () => {
 
     try {
       if (isSignUp) {
-        if (!formData.name.trim()) {
-          throw new Error("Please enter your name");
-        }
+        if (!formData.name.trim()) throw new Error("Please enter your name");
         await signup(formData.email, formData.password, formData.name);
-        toast({
-          title: "Account created!",
-          description: "Welcome to DiabetesCare",
-        });
+        toast({ title: "Account created!", description: "Welcome to DiabetesCare" });
       } else {
         await login(formData.email, formData.password);
-        toast({
-          title: "Welcome back!",
-          description: "Successfully logged in",
-        });
+        toast({ title: "Welcome back!", description: "Successfully logged in" });
       }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Authentication failed";
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: errorMessage, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -70,21 +60,24 @@ const Login = () => {
     setIsGoogleLoading(true);
     try {
       await googleLogin();
-      toast({
-        title: "Welcome!",
-        description: "Successfully signed in with Google",
-      });
+      toast({ title: "Welcome!", description: "Successfully signed in with Google" });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Google sign-in failed";
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: errorMessage, variant: "destructive" });
     } finally {
       setIsGoogleLoading(false);
     }
   };
+
+  // If already authenticated, show a lightweight redirect state
+  if (authLoading || (user && userData)) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-8">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        <span className="ml-3 text-muted-foreground">Redirecting...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -97,9 +90,7 @@ const Login = () => {
         </div>
         <div className="relative z-10 flex flex-col justify-center p-12 text-primary-foreground">
           <Logo size="lg" />
-          <h2 className="font-heading text-4xl font-bold mt-8 mb-4">
-            Smart Diabetes Management
-          </h2>
+          <h1 className="font-heading text-4xl font-bold mt-8 mb-4">Smart Diabetes Management</h1>
           <p className="text-lg opacity-90 max-w-md">
             Real-time health monitoring powered by IoT sensors and machine learning algorithms.
           </p>
@@ -124,17 +115,14 @@ const Login = () => {
           </Link>
 
           <div className="mb-8">
-            <h1 className="font-heading text-2xl font-bold text-foreground">
+            <h2 className="font-heading text-2xl font-bold text-foreground">
               {isSignUp ? "Create your account" : "Welcome back"}
-            </h1>
+            </h2>
             <p className="text-muted-foreground text-sm mt-1">
-              {isSignUp 
-                ? "Sign up to start monitoring your health" 
-                : "Sign in to access your dashboard"}
+              {isSignUp ? "Sign up to start monitoring your health" : "Sign in to access your dashboard"}
             </p>
           </div>
 
-          {/* Google Sign In Button */}
           <Button
             type="button"
             variant="outline"
@@ -145,7 +133,7 @@ const Login = () => {
             {isGoogleLoading ? (
               <Loader2 className="w-4 h-4 animate-spin mr-2" />
             ) : (
-              <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" aria-hidden="true">
                 <path
                   fill="currentColor"
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -186,7 +174,7 @@ const Login = () => {
                   placeholder="Enter your full name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required={isSignUp}
+                  required
                 />
               </div>
             )}
@@ -223,19 +211,8 @@ const Login = () => {
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-              {isSignUp && (
-                <p className="text-xs text-muted-foreground">Password must be at least 6 characters</p>
-              )}
+              {isSignUp && <p className="text-xs text-muted-foreground">Password must be at least 6 characters</p>}
             </div>
-
-            {!isSignUp && (
-              <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2">
-                  <input type="checkbox" className="rounded border-input" />
-                  <span className="text-sm text-muted-foreground">Remember me</span>
-                </label>
-              </div>
-            )}
 
             <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
               {isLoading ? (
@@ -254,10 +231,7 @@ const Login = () => {
 
           <p className="text-center mt-6 text-sm text-muted-foreground">
             {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
-            <button 
-              onClick={() => setIsSignUp(!isSignUp)}
-              className="text-primary hover:underline font-medium"
-            >
+            <button onClick={() => setIsSignUp(!isSignUp)} className="text-primary hover:underline font-medium">
               {isSignUp ? "Sign in" : "Sign up"}
             </button>
           </p>

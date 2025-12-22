@@ -13,10 +13,12 @@ import {
   Calendar,
   BarChart3,
   UserCog,
+  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/Logo";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 type UserRole = "patient" | "doctor" | "admin";
 
@@ -49,10 +51,10 @@ const navigationConfig = {
   ],
 };
 
-const roleColors = {
-  patient: "primary",
-  doctor: "info",
-  admin: "warning",
+const roleColors: Record<UserRole, string> = {
+  patient: "bg-primary",
+  doctor: "bg-info",
+  admin: "bg-warning",
 };
 
 const DashboardLayout = ({ children, role }: DashboardLayoutProps) => {
@@ -60,17 +62,25 @@ const DashboardLayout = ({ children, role }: DashboardLayoutProps) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { userData, signOut } = useAuth();
 
   const navigation = navigationConfig[role];
 
-  const handleLogout = () => {
-    localStorage.removeItem("userRole");
-    localStorage.removeItem("isAuthenticated");
-    toast({
-      title: "Logged out",
-      description: "You have been successfully logged out.",
-    });
-    navigate("/");
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Logged out",
+        description: "You have been successfully logged out.",
+      });
+      navigate("/");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to log out",
+        variant: "destructive",
+      });
+    }
   };
 
   const NavItem = ({ item }: { item: typeof navigation[0] }) => {
@@ -129,6 +139,24 @@ const DashboardLayout = ({ children, role }: DashboardLayoutProps) => {
             <Logo size={sidebarOpen ? "md" : "sm"} showText={sidebarOpen} />
           </div>
 
+          {/* User Info */}
+          {sidebarOpen && userData && (
+            <div className="p-4 border-b border-border">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-full ${roleColors[userData.role]} flex items-center justify-center`}>
+                  <User className="w-5 h-5 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{userData.name}</p>
+                  <p className="text-xs text-muted-foreground truncate">{userData.email}</p>
+                  <span className={`inline-block mt-1 px-2 py-0.5 text-xs rounded-full capitalize ${roleColors[userData.role]} text-white`}>
+                    {userData.role}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
           <nav className="flex-1 p-4 space-y-2">
             {navigation.map((item) => (
               <NavItem key={item.path} item={item} />
@@ -163,6 +191,24 @@ const DashboardLayout = ({ children, role }: DashboardLayoutProps) => {
         }`}
       >
         <div className="flex flex-col h-full pt-16">
+          {/* User Info Mobile */}
+          {userData && (
+            <div className="p-4 border-b border-border">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-full ${roleColors[userData.role]} flex items-center justify-center`}>
+                  <User className="w-5 h-5 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{userData.name}</p>
+                  <p className="text-xs text-muted-foreground truncate">{userData.email}</p>
+                  <span className={`inline-block mt-1 px-2 py-0.5 text-xs rounded-full capitalize ${roleColors[userData.role]} text-white`}>
+                    {userData.role}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
           <nav className="flex-1 p-4 space-y-2">
             {navigation.map((item) => (
               <NavItem key={item.path} item={item} />

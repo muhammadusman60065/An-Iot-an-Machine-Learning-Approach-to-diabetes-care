@@ -19,10 +19,10 @@ import type { DatabaseReference } from "firebase/database";
 
 const firebaseConfig = {
   apiKey: "AIzaSyC9ZpMm5wh3AqMche8vgddFUYCbkFjpsJQ",
-  authDomain: "diabetescare-iot.firebaseapp.com",
-  databaseURL: "https://diabetescare-iot-default-rtdb.firebaseio.com",
-  projectId: "diabetescare-iot",
-  storageBucket: "diabetescare-iot.appspot.com",
+  authDomain: "diabetes-monitoring-fyp.firebaseapp.com",
+  databaseURL: "https://diabetes-monitoring-fyp-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "diabetes-monitoring-fyp",
+  storageBucket: "diabetes-monitoring-fyp.appspot.com",
   messagingSenderId: "123456789",
   appId: "1:123456789:web:abc123def456",
 };

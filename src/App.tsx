@@ -8,6 +8,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import About from "./pages/About";
+import IoTDashboard from "./pages/IoTDashboard";
 import PatientDashboard from "./pages/patient/PatientDashboard";
 import DoctorDashboard from "./pages/doctor/DoctorDashboard";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/about" element={<About />} />
+            <Route path="/iot-dashboard" element={<IoTDashboard />} />
             
             {/* Patient Routes - Protected */}
             <Route path="/patient/dashboard" element={

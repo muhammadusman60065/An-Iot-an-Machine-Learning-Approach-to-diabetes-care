@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { database, ref, onValue, set, push } from "@/lib/firebase";
+import { supabase } from "@/integrations/supabase/client";
 
 // Vitals data structure from IoT devices
 export interface PatientVitals {
@@ -23,12 +24,14 @@ export interface PatientAlert {
   isRead: boolean;
 }
 
-// ML Prediction placeholder structure
+// ML Prediction from AI analysis
 export interface MLPrediction {
   riskLevel: "low" | "medium" | "high" | "critical";
   anomalyStatus: boolean;
   confidence: number;
-  predictedCondition: string;
+  predictedCondition?: string;
+  analysis?: string;
+  recommendations?: string[];
   timestamp: string;
 }
 
@@ -116,9 +119,79 @@ export const useRealtimePatient = (patientId: string): UseRealtimePatientReturn 
   const [isConnected, setIsConnected] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const lastAnalysisTime = useRef<number>(0);
+  const analysisInProgress = useRef<boolean>(false);
+
+  // Call AI to analyze vitals
+  const analyzeVitalsWithAI = useCallback(async (currentVitals: PatientVitals, history: PatientVitals[]) => {
+    // Throttle AI calls to once every 10 seconds
+    const now = Date.now();
+    if (now - lastAnalysisTime.current < 10000 || analysisInProgress.current) {
+      return;
+    }
+
+    lastAnalysisTime.current = now;
+    analysisInProgress.current = true;
+
+    try {
+      const { data, error: invokeError } = await supabase.functions.invoke('analyze-vitals', {
+        body: {
+          temperature: currentVitals.temperature,
+          humidity: currentVitals.humidity,
+          heartRate: currentVitals.heartRate,
+          spO2: currentVitals.spo2,
+          glucose: currentVitals.glucose,
+          patientId,
+          historicalData: history.slice(-5).map(v => ({
+            temperature: v.temperature,
+            humidity: v.humidity,
+            heartRate: v.heartRate,
+            spO2: v.spo2,
+            glucose: v.glucose,
+          })),
+        },
+      });
+
+      if (invokeError) {
+        console.error("AI analysis error:", invokeError);
+        return;
+      }
+
+      if (data && !data.error) {
+        setMlPrediction({
+          riskLevel: data.riskLevel,
+          anomalyStatus: data.anomalyDetected,
+          confidence: data.confidence,
+          predictedCondition: data.predictedCondition || undefined,
+          analysis: data.analysis,
+          recommendations: data.recommendations,
+          timestamp: data.timestamp,
+        });
+
+        // Write prediction to Firebase for other systems
+        try {
+          const mlRef = ref(database, `patients/${patientId}/ml`);
+          await set(mlRef, {
+            riskLevel: data.riskLevel,
+            anomalyStatus: data.anomalyDetected,
+            confidence: data.confidence,
+            predictedCondition: data.predictedCondition || null,
+            analysis: data.analysis,
+            timestamp: data.timestamp,
+          });
+        } catch (fbError) {
+          console.log("Could not write ML prediction to Firebase:", fbError);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to analyze vitals:", err);
+    } finally {
+      analysisInProgress.current = false;
+    }
+  }, [patientId]);
 
   // Process vitals and generate alerts
-  const processVitals = useCallback((newVitals: PatientVitals) => {
+  const processVitals = useCallback((newVitals: PatientVitals, history: PatientVitals[]) => {
     const newAlerts: PatientAlert[] = [];
     
     // Check each vital against thresholds
@@ -137,7 +210,10 @@ export const useRealtimePatient = (patientId: string): UseRealtimePatientReturn 
     if (newAlerts.length > 0) {
       setAlerts(prev => [...newAlerts, ...prev].slice(0, 50));
     }
-  }, []);
+
+    // Trigger AI analysis
+    analyzeVitalsWithAI(newVitals, history);
+  }, [analyzeVitalsWithAI]);
 
   useEffect(() => {
     if (!patientId) return;
@@ -164,9 +240,10 @@ export const useRealtimePatient = (patientId: string): UseRealtimePatientReturn 
             const readings = Object.values(data) as PatientVitals[];
             if (readings.length > 0) {
               const latestVitals = readings[readings.length - 1];
+              const historySlice = readings.slice(-20);
               setVitals(latestVitals);
-              setVitalsHistory(readings.slice(-20));
-              processVitals(latestVitals);
+              setVitalsHistory(historySlice);
+              processVitals(latestVitals, historySlice);
               setLastUpdated(latestVitals.timestamp);
               setIsConnected(true);
             }
@@ -231,9 +308,10 @@ export const useRealtimePatient = (patientId: string): UseRealtimePatientReturn 
       
       // Initial data
       const initialVitals = generateSimulatedVitals();
+      const initialHistory = [initialVitals];
       setVitals(initialVitals);
-      setVitalsHistory([initialVitals]);
-      processVitals(initialVitals);
+      setVitalsHistory(initialHistory);
+      processVitals(initialVitals, initialHistory);
       setLastUpdated(initialVitals.timestamp);
       
       // Set default patient info
@@ -249,8 +327,11 @@ export const useRealtimePatient = (patientId: string): UseRealtimePatientReturn 
       simulationInterval = setInterval(() => {
         const newVitals = generateSimulatedVitals();
         setVitals(newVitals);
-        setVitalsHistory(prev => [...prev.slice(-19), newVitals]);
-        processVitals(newVitals);
+        setVitalsHistory(prev => {
+          const newHistory = [...prev.slice(-19), newVitals];
+          processVitals(newVitals, newHistory);
+          return newHistory;
+        });
         setLastUpdated(newVitals.timestamp);
       }, 3000);
     };

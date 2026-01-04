@@ -111,14 +111,20 @@ const PatientDashboard = () => {
                 </span>
               </div>
             </div>
-            {/* Data Freshness Info */}
-            <div className="hidden sm:flex flex-col items-end gap-1">
+            {/* Debug: Firebase Timestamp Info */}
+            <div className="hidden sm:flex flex-col items-end gap-1 text-right">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Clock size={14} />
-                <span>Last ESP Update:</span>
+                <span>Firebase Timestamp:</span>
               </div>
-              <span className="text-sm font-medium text-foreground">
-                {lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : "No data"}
+              <span className="text-xs font-mono text-primary bg-primary/10 px-2 py-1 rounded">
+                {lastUpdated || "No data"}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                Local: {lastUpdated ? new Date(lastUpdated).toLocaleString() : "--"}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                Delay: <span className={delaySeconds > 10 ? "text-warning" : "text-success"}>{delaySeconds}s ago</span>
               </span>
             </div>
           </div>

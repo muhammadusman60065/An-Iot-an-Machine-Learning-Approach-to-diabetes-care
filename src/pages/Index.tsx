@@ -3,6 +3,7 @@ import HeroSection from "@/components/landing/HeroSection";
 import FeaturesSection from "@/components/landing/FeaturesSection";
 import TechStackSection from "@/components/landing/TechStackSection";
 import Footer from "@/components/landing/Footer";
+import DiabetesChatbot from "@/components/chatbot/DiabetesChatbot";
 
 const Index = () => {
   return (
@@ -18,6 +19,7 @@ const Index = () => {
         </section>
       </main>
       <Footer />
+      <DiabetesChatbot />
     </div>
   );
 };

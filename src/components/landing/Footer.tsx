@@ -1,5 +1,5 @@
 import Logo from "@/components/Logo";
-import { Github, Linkedin, Mail } from "lucide-react";
+import { Github } from "lucide-react";
 
 const Footer = () => {
   return (
@@ -61,12 +61,6 @@ const Footer = () => {
             <div className="flex gap-4">
               <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
                 <Github size={20} />
-              </a>
-              <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
-                <Linkedin size={20} />
-              </a>
-              <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
-                <Mail size={20} />
               </a>
             </div>
           </div>

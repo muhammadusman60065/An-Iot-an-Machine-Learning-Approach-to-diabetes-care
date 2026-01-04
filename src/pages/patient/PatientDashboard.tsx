@@ -2,6 +2,7 @@ import React from 'react';
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePatientVitals } from "@/hooks/usePatientVitals";
+import DiabetesChatbot from "@/components/chatbot/DiabetesChatbot";
 
 // VitalCard Component
 const VitalCard = ({ 
@@ -183,6 +184,7 @@ const PatientDashboard = () => {
           </div>
         </div>
       </div>
+      <DiabetesChatbot />
     </DashboardLayout>
   );
 };

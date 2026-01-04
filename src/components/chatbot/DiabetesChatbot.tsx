@@ -1,26 +1,47 @@
 import { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send, Bot, User, Loader2 } from "lucide-react";
+import { MessageCircle, X, Send, Bot, User, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 type Message = {
+  id?: string;
   role: "user" | "assistant";
   content: string;
 };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/diabetes-chat`;
 
+const QUICK_QUESTIONS = [
+  "What is a normal blood sugar level?",
+  "What foods should I avoid?",
+  "How does exercise affect glucose?",
+  "Signs of high blood sugar?",
+  "Tips for managing diabetes",
+];
+
+const getUserId = (): string => {
+  let userId = localStorage.getItem("diacare_chat_user_id");
+  if (!userId) {
+    userId = crypto.randomUUID();
+    localStorage.setItem("diacare_chat_user_id", userId);
+  }
+  return userId;
+};
+
 const DiabetesChatbot = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "assistant",
-      content: "Hello! I'm DiaCare AI, your diabetes health assistant. Ask me anything about diabetes management, blood sugar, diet, or lifestyle tips. How can I help you today?",
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const userId = useRef(getUserId());
+
+  const WELCOME_MESSAGE: Message = {
+    role: "assistant",
+    content: "Hello! I'm DiaCare AI, your diabetes health assistant. Ask me anything about diabetes management, blood sugar, diet, or lifestyle tips. How can I help you today?",
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -29,6 +50,73 @@ const DiabetesChatbot = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Load chat history when component mounts or chat opens
+  useEffect(() => {
+    if (isOpen && messages.length === 0) {
+      loadChatHistory();
+    }
+  }, [isOpen]);
+
+  const loadChatHistory = async () => {
+    setIsLoadingHistory(true);
+    try {
+      const { data, error } = await supabase
+        .from("chat_messages")
+        .select("id, role, content, created_at")
+        .eq("user_id", userId.current)
+        .order("created_at", { ascending: true })
+        .limit(50);
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        const loadedMessages: Message[] = data.map((msg) => ({
+          id: msg.id,
+          role: msg.role as "user" | "assistant",
+          content: msg.content,
+        }));
+        setMessages(loadedMessages);
+      } else {
+        setMessages([WELCOME_MESSAGE]);
+      }
+    } catch (error) {
+      console.error("Error loading chat history:", error);
+      setMessages([WELCOME_MESSAGE]);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
+  const saveMessage = async (message: Message) => {
+    try {
+      const { error } = await supabase.from("chat_messages").insert({
+        user_id: userId.current,
+        role: message.role,
+        content: message.content,
+      });
+      if (error) throw error;
+    } catch (error) {
+      console.error("Error saving message:", error);
+    }
+  };
+
+  const clearHistory = async () => {
+    try {
+      const { error } = await supabase
+        .from("chat_messages")
+        .delete()
+        .eq("user_id", userId.current);
+
+      if (error) throw error;
+
+      setMessages([WELCOME_MESSAGE]);
+      toast.success("Chat history cleared");
+    } catch (error) {
+      console.error("Error clearing history:", error);
+      toast.error("Failed to clear history");
+    }
+  };
 
   const streamChat = async (userMessages: Message[]) => {
     const resp = await fetch(CHAT_URL, {
@@ -93,23 +181,38 @@ const DiabetesChatbot = () => {
         }
       }
     }
+
+    return assistantContent;
   };
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+  const handleSend = async (messageText?: string) => {
+    const text = messageText || input.trim();
+    if (!text || isLoading) return;
 
-    const userMessage: Message = { role: "user", content: input.trim() };
+    const userMessage: Message = { role: "user", content: text };
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
     setInput("");
     setIsLoading(true);
 
+    // Save user message
+    await saveMessage(userMessage);
+
     try {
-      await streamChat(updatedMessages.slice(1)); // Skip the initial greeting
+      // Filter out welcome message for API call
+      const apiMessages = updatedMessages.filter(
+        (m) => m.content !== WELCOME_MESSAGE.content
+      );
+      const assistantContent = await streamChat(apiMessages);
+      
+      // Save assistant response
+      if (assistantContent) {
+        await saveMessage({ role: "assistant", content: assistantContent });
+      }
     } catch (error) {
       console.error("Chat error:", error);
       toast.error(error instanceof Error ? error.message : "Failed to get response");
-      setMessages((prev) => prev.slice(0, -1)); // Remove the failed user message
+      setMessages((prev) => prev.slice(0, -1));
     } finally {
       setIsLoading(false);
     }
@@ -135,58 +238,94 @@ const DiabetesChatbot = () => {
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-24 right-6 z-50 w-[360px] h-[500px] bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-scale-in">
+        <div className="fixed bottom-24 right-6 z-50 w-[360px] h-[520px] bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-scale-in">
           {/* Header */}
-          <div className="bg-primary px-4 py-3 flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary-foreground/20 rounded-full flex items-center justify-center">
-              <Bot size={20} className="text-primary-foreground" />
+          <div className="bg-primary px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-primary-foreground/20 rounded-full flex items-center justify-center">
+                <Bot size={20} className="text-primary-foreground" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-primary-foreground">DiaCare AI</h3>
+                <p className="text-xs text-primary-foreground/80">Diabetes Health Assistant</p>
+              </div>
             </div>
-            <div>
-              <h3 className="font-semibold text-primary-foreground">DiaCare AI</h3>
-              <p className="text-xs text-primary-foreground/80">Diabetes Health Assistant</p>
-            </div>
+            <button
+              onClick={clearHistory}
+              className="p-2 hover:bg-primary-foreground/10 rounded-full transition-colors"
+              title="Clear chat history"
+            >
+              <Trash2 size={16} className="text-primary-foreground/80" />
+            </button>
           </div>
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-background">
-            {messages.map((message, index) => (
-              <div
-                key={index}
-                className={`flex gap-2 ${message.role === "user" ? "justify-end" : "justify-start"}`}
-              >
-                {message.role === "assistant" && (
-                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Bot size={16} className="text-primary" />
+            {isLoadingHistory ? (
+              <div className="flex items-center justify-center h-full">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+              </div>
+            ) : (
+              <>
+                {messages.map((message, index) => (
+                  <div
+                    key={message.id || index}
+                    className={`flex gap-2 ${message.role === "user" ? "justify-end" : "justify-start"}`}
+                  >
+                    {message.role === "assistant" && (
+                      <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                        <Bot size={16} className="text-primary" />
+                      </div>
+                    )}
+                    <div
+                      className={`max-w-[80%] px-4 py-2 rounded-2xl text-sm ${
+                        message.role === "user"
+                          ? "bg-primary text-primary-foreground rounded-br-md"
+                          : "bg-muted text-foreground rounded-bl-md"
+                      }`}
+                    >
+                      {message.content}
+                    </div>
+                    {message.role === "user" && (
+                      <div className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center flex-shrink-0">
+                        <User size={16} className="text-secondary-foreground" />
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {isLoading && messages[messages.length - 1]?.role === "user" && (
+                  <div className="flex gap-2 justify-start">
+                    <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                      <Bot size={16} className="text-primary" />
+                    </div>
+                    <div className="bg-muted px-4 py-2 rounded-2xl rounded-bl-md">
+                      <Loader2 size={16} className="animate-spin text-muted-foreground" />
+                    </div>
                   </div>
                 )}
-                <div
-                  className={`max-w-[80%] px-4 py-2 rounded-2xl text-sm ${
-                    message.role === "user"
-                      ? "bg-primary text-primary-foreground rounded-br-md"
-                      : "bg-muted text-foreground rounded-bl-md"
-                  }`}
-                >
-                  {message.content}
-                </div>
-                {message.role === "user" && (
-                  <div className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center flex-shrink-0">
-                    <User size={16} className="text-secondary-foreground" />
-                  </div>
-                )}
-              </div>
-            ))}
-            {isLoading && messages[messages.length - 1]?.role === "user" && (
-              <div className="flex gap-2 justify-start">
-                <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Bot size={16} className="text-primary" />
-                </div>
-                <div className="bg-muted px-4 py-2 rounded-2xl rounded-bl-md">
-                  <Loader2 size={16} className="animate-spin text-muted-foreground" />
-                </div>
-              </div>
+                <div ref={messagesEndRef} />
+              </>
             )}
-            <div ref={messagesEndRef} />
           </div>
+
+          {/* Quick Questions */}
+          {messages.length <= 1 && !isLoadingHistory && (
+            <div className="px-3 pb-2">
+              <p className="text-xs text-muted-foreground mb-2">Quick questions:</p>
+              <div className="flex flex-wrap gap-1">
+                {QUICK_QUESTIONS.map((question, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleSend(question)}
+                    disabled={isLoading}
+                    className="text-xs px-2 py-1 bg-muted hover:bg-muted/80 text-foreground rounded-full transition-colors"
+                  >
+                    {question}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Input */}
           <div className="p-3 border-t border-border bg-card">
@@ -201,7 +340,7 @@ const DiabetesChatbot = () => {
                 disabled={isLoading}
               />
               <Button
-                onClick={handleSend}
+                onClick={() => handleSend()}
                 disabled={!input.trim() || isLoading}
                 size="icon"
                 className="rounded-full"

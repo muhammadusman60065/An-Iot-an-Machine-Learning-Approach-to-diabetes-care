@@ -24,16 +24,18 @@ const HeroSection = () => {
             </div>
 
             <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl font-bold leading-tight animate-slide-up">
-              Smart Healthcare for{" "}
-              <span className="gradient-text">Diabetes</span>{" "}
-              Management
+              An IoT & Machine Learning Approach to{" "}
+              <span className="gradient-text">Diabetes Care</span>
             </h1>
 
             <p className="text-lg text-muted-foreground max-w-xl animate-slide-up" style={{ animationDelay: "0.1s" }}>
-              DiabetesCare combines IoT sensors with advanced ML algorithms to provide 
-              real-time health monitoring, anomaly detection, and personalized care 
-              for diabetes patients.
+              Get real-time health data from IoT sensors and take action before it's too late. 
+              DiaCare empowers patients and doctors with intelligent monitoring and early warning systems.
             </p>
+
+            <blockquote className="border-l-4 border-primary pl-4 italic text-muted-foreground animate-slide-up" style={{ animationDelay: "0.15s" }}>
+              "Prevention is better than cure — and with real-time data, prevention becomes possible."
+            </blockquote>
 
             <div className="flex flex-wrap gap-4 animate-slide-up" style={{ animationDelay: "0.2s" }}>
               <Button variant="hero" onClick={() => navigate("/login")}>

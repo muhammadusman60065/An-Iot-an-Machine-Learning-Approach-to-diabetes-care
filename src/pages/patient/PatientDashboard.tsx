@@ -7,6 +7,14 @@ import HealthStatusBadge from "@/components/dashboard/HealthStatusBadge";
 import SimulatedDataBanner from "@/components/dashboard/SimulatedDataBanner";
 import { useFirebaseData, HEALTH_THRESHOLDS } from "@/hooks/useFirebaseData";
 import { useAuth } from "@/contexts/AuthContext";
+import type { HealthStatus } from "@/lib/anomalyDetection";
+
+// Map HealthStatus to MetricCard status
+const mapStatus = (status: HealthStatus | undefined): "normal" | "warning" | "danger" => {
+  if (!status) return "normal";
+  if (status === "critical") return "danger";
+  return status as "normal" | "warning";
+};
 
 const PatientDashboard = () => {
   const { currentReading, readingHistory, alerts, anomalyResult, isLoading, isSimulated } = useFirebaseData();
@@ -95,7 +103,7 @@ const PatientDashboard = () => {
             value={currentReading?.glucose || 0}
             unit="mg/dL"
             icon={Droplets}
-            status={anomalyResult?.glucoseStatus || "normal"}
+            status={mapStatus(anomalyResult?.glucoseStatus)}
             lastUpdated={currentReading ? new Date(currentReading.timestamp).toLocaleTimeString() : undefined}
           />
           <MetricCard
@@ -103,7 +111,7 @@ const PatientDashboard = () => {
             value={currentReading?.heartRate || 0}
             unit="BPM"
             icon={Heart}
-            status={anomalyResult?.heartRateStatus || "normal"}
+            status={mapStatus(anomalyResult?.heartRateStatus)}
             lastUpdated={currentReading ? new Date(currentReading.timestamp).toLocaleTimeString() : undefined}
           />
           <MetricCard
@@ -111,7 +119,7 @@ const PatientDashboard = () => {
             value={currentReading?.temperature || 0}
             unit="°C"
             icon={Thermometer}
-            status={anomalyResult?.temperatureStatus || "normal"}
+            status={mapStatus(anomalyResult?.temperatureStatus)}
             lastUpdated={currentReading ? new Date(currentReading.timestamp).toLocaleTimeString() : undefined}
           />
           <MetricCard
@@ -119,7 +127,7 @@ const PatientDashboard = () => {
             value={anomalyResult?.status === "normal" ? 100 : anomalyResult?.status === "warning" ? 75 : 50}
             unit="%"
             icon={Activity}
-            status={anomalyResult?.status || "normal"}
+            status={mapStatus(anomalyResult?.status)}
           />
         </div>
 

@@ -123,8 +123,19 @@ export const usePatientRealtimeData = (userData: UserData | null): UsePatientRea
   const lastAnalysisTime = useRef<number>(0);
   const analysisInProgress = useRef<boolean>(false);
 
-  // Get patientId from userData - patients use their own patientId
-  const patientId = userData?.patientId || (userData?.role === "patient" ? `patient_${userData.uid.slice(0, 8)}` : null);
+  // Get patientId from userData - must match Firebase path: patients/{patientId}
+  // Priority: userData.patientId > extracted from email (patient1@gmail.com -> patient1)
+  const patientId = userData?.patientId || 
+    (userData?.role === "patient" && userData.email 
+      ? userData.email.split("@")[0] // Use email prefix as patientId (e.g., patient1@gmail.com -> patient1)
+      : null);
+
+  // Debug: Log the patientId being used
+  useEffect(() => {
+    console.log("🔗 Patient Dashboard - Using patientId:", patientId);
+    console.log("🔗 Firebase path:", patientId ? `patients/${patientId}/vitals` : "No patientId");
+    console.log("🔗 userData:", userData);
+  }, [patientId, userData]);
 
   // Track raw timestamp from Firebase (in milliseconds)
   const [lastTimestampMs, setLastTimestampMs] = useState<number | null>(null);
@@ -278,14 +289,31 @@ export const usePatientRealtimeData = (userData: UserData | null): UsePatientRea
         const infoRef = ref(database, `patients/${patientId}/info`);
 
         unsubVitals = onValue(vitalsRef, (snapshot) => {
+          console.log("📡 Firebase vitals snapshot exists:", snapshot.exists());
+          console.log("📡 Firebase vitals path:", `patients/${patientId}/vitals`);
+          
           if (snapshot.exists()) {
             setIsSimulated(false);
             const data = snapshot.val();
+            console.log("📡 Firebase vitals raw data:", data);
+            
             let readings: PatientVitals[] = [];
             
             if (typeof data === 'object' && data !== null) {
-              if (data.timestamp) {
-                // Single vitals object
+              // Check for direct vitals object with individual fields
+              if (data.temperature !== undefined || data.heartRate !== undefined) {
+                // Direct vitals object: patients/{patientId}/vitals/{temperature, humidity, etc}
+                readings = [{
+                  temperature: data.temperature || 0,
+                  humidity: data.humidity || 0,
+                  heartRate: data.heartRate || 0,
+                  spo2: data.spO2 || data.spo2 || 0,
+                  glucose: data.glucose || 0,
+                  timestamp: data.timestamp || Date.now(),
+                } as PatientVitals];
+                console.log("📡 Parsed as direct vitals object:", readings[0]);
+              } else if (data.timestamp) {
+                // Single vitals object with timestamp
                 readings = [data as PatientVitals];
               } else {
                 // Multiple readings under push keys
@@ -308,19 +336,23 @@ export const usePatientRealtimeData = (userData: UserData | null): UsePatientRea
                 ? latestVitals.timestamp 
                 : new Date(latestVitals.timestamp).getTime();
               
+              console.log("✅ Using real Firebase data:", latestVitals);
+              
               setVitals(latestVitals);
               setVitalsHistory(historySlice);
               processVitals(latestVitals, historySlice);
               setLastUpdated(typeof latestVitals.timestamp === 'number' 
                 ? new Date(latestVitals.timestamp).toISOString() 
-                : latestVitals.timestamp);
+                : String(latestVitals.timestamp));
               setLastTimestampMs(rawTimestampMs);
               setIsConnected(true);
             }
           } else {
+            console.log("⚠️ No data at path, starting simulation");
             startSimulation();
           }
-        }, () => {
+        }, (error) => {
+          console.error("❌ Firebase vitals error:", error);
           startSimulation();
         });
 

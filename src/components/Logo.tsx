@@ -22,7 +22,7 @@ const Logo = ({ size = "md", showText = true }: LogoProps) => {
       </div>
       {showText && (
         <span className={`font-heading font-bold ${sizes[size].text} text-foreground`}>
-          Diabetes<span className="text-primary">Care</span>
+          Dia<span className="text-primary">Care</span>
         </span>
       )}
     </div>

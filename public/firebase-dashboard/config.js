@@ -1,36 +1,39 @@
 /**
  * Firebase Configuration
  * =====================
- * Replace with your Firebase project credentials
  * 
- * To get these values:
+ * PASTE YOUR API KEY BELOW on line 13 (replace YOUR_API_KEY_HERE)
+ * 
+ * To get your API key:
  * 1. Go to Firebase Console (https://console.firebase.google.com)
- * 2. Select your project
- * 3. Click the gear icon → Project settings
- * 4. Scroll to "Your apps" → Web app
- * 5. Copy the config object
+ * 2. Select your project → Project settings
+ * 3. Scroll to "Your apps" → Web app → Copy apiKey
  */
 
 const firebaseConfig = {
-  apiKey: "AIzaSyC9ZpMm5wh3AqMche8vgddFUYCbkFjpsJQ",
-  authDomain: "diabetes-monitoring-4a93a.firebaseapp.com",
-  databaseURL: "https://diabetes-monitoring-4a93a-default-rtdb.firebaseio.com",
-  projectId: "diabetes-monitoring-4a93a",
-  storageBucket: "diabetes-monitoring-4a93a.firebasestorage.app",
-  messagingSenderId: "349aborght",
-  appId: "1:349609498015:web:yourappid"
+  apiKey: "YOUR_API_KEY_HERE",  // <-- PASTE YOUR API KEY HERE
+  authDomain: "diabetes-monitoring-fyp.firebaseapp.com",
+  databaseURL: "https://diabetes-monitoring-fyp-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "diabetes-monitoring-fyp",
+  storageBucket: "diabetes-monitoring-fyp.appspot.com",
+  messagingSenderId: "000000000000",
+  appId: "1:000000000000:web:placeholder"
 };
 
 // Initialize Firebase
-firebase.initializeApp(firebaseConfig);
+try {
+  firebase.initializeApp(firebaseConfig);
+  console.log('✅ Firebase initialized successfully');
+  console.log('📍 Database URL:', firebaseConfig.databaseURL);
+} catch (error) {
+  console.error('❌ Firebase initialization error:', error);
+}
 
 // Get database reference
 const database = firebase.database();
 
 // Export for use in other files
 window.firebaseDB = database;
-
-console.log('✅ Firebase initialized successfully');
 
 /**
  * ===========================================
@@ -39,6 +42,15 @@ console.log('✅ Firebase initialized successfully');
  * Copy these rules to Firebase Console:
  * Firebase Console → Realtime Database → Rules
  * 
+ * For DEMO/TESTING (open access):
+ * {
+ *   "rules": {
+ *     ".read": true,
+ *     ".write": true
+ *   }
+ * }
+ * 
+ * For PRODUCTION (secure):
  * {
  *   "rules": {
  *     "patients": {
@@ -50,9 +62,7 @@ console.log('✅ Firebase initialized successfully');
  *         "history": {
  *           ".read": true,
  *           ".write": true,
- *           "$historyId": {
- *             ".validate": "newData.hasChildren(['temperature', 'humidity', 'heartRate', 'spO2', 'glucose', 'timestamp'])"
- *           }
+ *           ".indexOn": ["timestamp"]
  *         },
  *         "alerts": {
  *           ".read": true,
@@ -65,12 +75,12 @@ console.log('✅ Firebase initialized successfully');
  *         "info": {
  *           ".read": true,
  *           ".write": true
+ *         },
+ *         "device": {
+ *           ".read": true,
+ *           ".write": true
  *         }
  *       }
- *     },
- *     "devices": {
- *       ".read": true,
- *       ".write": true
  *     }
  *   }
  * }

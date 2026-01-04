@@ -133,6 +133,21 @@ body {
   border-color: var(--accent-primary);
 }
 
+.add-patient-btn {
+  padding: 10px 15px;
+  background: var(--accent-success);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.add-patient-btn:hover {
+  background: #059669;
+}
+
 .refresh-btn {
   padding: 10px 20px;
   background: var(--accent-primary);
@@ -146,6 +161,21 @@ body {
 
 .refresh-btn:hover {
   background: #2563eb;
+}
+
+.rules-info {
+  padding: 10px 20px;
+  margin-bottom: 20px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.rules-info code {
+  background: var(--bg-secondary);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: 'Fira Code', monospace;
+  color: var(--accent-primary);
 }
 
 /* Vitals Grid */

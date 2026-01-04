@@ -107,6 +107,12 @@ function updateLastUpdateTime() {
 // Firebase Data Operations
 // ============================================
 
+/**
+ * Load patients list
+ * With rules: { "patients": { "$patientId": { ".read": true, ".write": true } } }
+ * We cannot read the root /patients node, so we use a known patient list
+ * or allow users to enter patient IDs manually
+ */
 function loadPatients() {
   console.log('🔄 Loading patients...');
   
@@ -116,49 +122,92 @@ function loadPatients() {
     return;
   }
 
-  const patientsRef = window.firebaseDB.ref('patients');
+  // Since rules only allow access to patients/{patientId}/* (not /patients root),
+  // we provide a way to manually enter patient IDs or use known IDs
+  const knownPatientIds = getStoredPatientIds();
   
-  patientsRef.once('value')
-    .then((snapshot) => {
-      const patients = snapshot.val();
-      elements.patientSelect.innerHTML = '';
-      
-      if (!patients) {
-        elements.patientSelect.innerHTML = '<option value="">No patients found - Add data to patients/{patientId}/</option>';
-        console.log('⚠️ No patients in database. Expected path: patients/{patientId}/');
-        setConnectionStatus('connected', 'Connected - No data');
-        return;
-      }
+  elements.patientSelect.innerHTML = '';
+  
+  // Add manual entry option
+  const manualOption = document.createElement('option');
+  manualOption.value = '';
+  manualOption.textContent = '-- Enter Patient ID --';
+  elements.patientSelect.appendChild(manualOption);
 
-      // Add default option
-      const defaultOption = document.createElement('option');
-      defaultOption.value = '';
-      defaultOption.textContent = '-- Select a patient --';
-      elements.patientSelect.appendChild(defaultOption);
+  // Add known patient IDs from localStorage
+  knownPatientIds.forEach(patientId => {
+    const option = document.createElement('option');
+    option.value = patientId;
+    option.textContent = `Patient: ${patientId}`;
+    elements.patientSelect.appendChild(option);
+  });
 
-      // Add each patient
-      Object.keys(patients).forEach(patientId => {
-        const patient = patients[patientId];
-        const option = document.createElement('option');
-        option.value = patientId;
-        option.textContent = patient.info?.name || `Patient: ${patientId}`;
-        elements.patientSelect.appendChild(option);
-      });
+  // Add common test IDs
+  const testIds = ['patient001', 'patient1', 'test_patient'];
+  testIds.forEach(patientId => {
+    if (!knownPatientIds.includes(patientId)) {
+      const option = document.createElement('option');
+      option.value = patientId;
+      option.textContent = `${patientId} (test)`;
+      elements.patientSelect.appendChild(option);
+    }
+  });
 
-      console.log(`✅ Loaded ${Object.keys(patients).length} patients`);
-      setConnectionStatus('connected', 'Connected');
-      
-      // Auto-select first patient
-      if (Object.keys(patients).length > 0) {
-        const firstPatientId = Object.keys(patients)[0];
-        elements.patientSelect.value = firstPatientId;
-        selectPatient(firstPatientId);
-      }
-    })
-    .catch((error) => {
-      console.error('❌ Error loading patients:', error);
-      setConnectionStatus('error', 'Error: ' + error.message);
-    });
+  setConnectionStatus('connected', 'Connected');
+  console.log('✅ Patient selector ready. Enter your patient ID or select from list.');
+  
+  // Auto-select first known patient if available
+  if (knownPatientIds.length > 0) {
+    elements.patientSelect.value = knownPatientIds[0];
+    selectPatient(knownPatientIds[0]);
+  }
+}
+
+/**
+ * Get stored patient IDs from localStorage
+ */
+function getStoredPatientIds() {
+  try {
+    const stored = localStorage.getItem('knownPatientIds');
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Save patient ID to localStorage for future use
+ */
+function savePatientId(patientId) {
+  if (!patientId) return;
+  try {
+    const ids = getStoredPatientIds();
+    if (!ids.includes(patientId)) {
+      ids.push(patientId);
+      localStorage.setItem('knownPatientIds', JSON.stringify(ids));
+    }
+  } catch (e) {
+    console.log('Could not save patient ID');
+  }
+}
+
+/**
+ * Add custom patient ID via prompt
+ */
+function addCustomPatient() {
+  const patientId = prompt('Enter Patient ID (e.g., patient001):');
+  if (patientId && patientId.trim()) {
+    const cleanId = patientId.trim();
+    savePatientId(cleanId);
+    
+    // Add to dropdown and select
+    const option = document.createElement('option');
+    option.value = cleanId;
+    option.textContent = `Patient: ${cleanId}`;
+    elements.patientSelect.appendChild(option);
+    elements.patientSelect.value = cleanId;
+    selectPatient(cleanId);
+  }
 }
 
 function cleanupListeners() {
@@ -539,7 +588,11 @@ window.dismissAlert = function(alertId) {
 // ============================================
 
 elements.patientSelect.addEventListener('change', (e) => {
-  selectPatient(e.target.value);
+  const patientId = e.target.value;
+  if (patientId) {
+    savePatientId(patientId); // Save for future use
+    selectPatient(patientId);
+  }
 });
 
 elements.refreshBtn.addEventListener('click', () => {

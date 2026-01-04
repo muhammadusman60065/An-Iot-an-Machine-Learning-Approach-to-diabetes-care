@@ -3,7 +3,7 @@ import {
   AuthUser,
   UserData,
   UserRole,
-  getUserData,
+  ensureUserData,
   loginWithEmail,
   loginWithGoogle,
   logout,
@@ -38,7 +38,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      getUserData(firebaseUser.uid)
+      // Ensure user profile exists in Realtime DB (creates it if missing)
+      ensureUserData(firebaseUser)
         .then((data) => setUserData(data))
         .finally(() => setIsLoading(false));
     });
@@ -49,7 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     const u = await loginWithEmail(email, password);
     setUser(u);
-    const data = await getUserData(u.uid);
+    const data = await ensureUserData(u);
     setUserData(data);
   };
 

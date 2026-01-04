@@ -132,6 +132,40 @@ export const getUserData = async (uid: string): Promise<UserData | null> => {
   return snapshot.exists() ? (snapshot.val() as UserData) : null;
 };
 
+/**
+ * Ensure the logged-in user has a profile row in Realtime DB.
+ * This prevents "permission denied" / missing-user-data login dead-ends.
+ */
+export const ensureUserData = async (user: AuthUser): Promise<UserData> => {
+  try {
+    const existing = await getUserData(user.uid);
+    if (existing) return existing;
+
+    const email = user.email || "";
+    const nameFromEmail = email.includes("@") ? email.split("@")[0] : "User";
+    const role: UserRole = email === ADMIN_EMAIL ? "admin" : "patient";
+
+    const userData: UserData = {
+      uid: user.uid,
+      name: user.displayName || nameFromEmail || "User",
+      email,
+      role,
+      createdAt: new Date().toISOString(),
+    };
+
+    await set(ref(database, `users/${user.uid}`), userData);
+    return userData;
+  } catch (err: any) {
+    const msg = String(err?.message || err);
+    if (msg.toLowerCase().includes("permission denied")) {
+      throw new Error(
+        "Permission denied reading/writing /users. Update Firebase Realtime Database Rules to allow authenticated users to read/write users/{uid}."
+      );
+    }
+    throw err;
+  }
+};
+
 export const getAllUsers = async (): Promise<UserData[]> => {
   const snapshot = await get(usersRef);
   if (!snapshot.exists()) return [];

@@ -11,7 +11,7 @@
  */
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY_HERE",  // <-- PASTE YOUR API KEY HERE
+  apiKey: "AIzaSyC9ZpMm5wh3AqMche8vgddFUYCbkFjpsJQ",
   authDomain: "diabetes-monitoring-fyp.firebaseapp.com",
   databaseURL: "https://diabetes-monitoring-fyp-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "diabetes-monitoring-fyp",

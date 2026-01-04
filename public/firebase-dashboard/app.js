@@ -29,9 +29,10 @@ const MAX_HISTORY_POINTS = 50;
 // State Management
 // ============================================
 
-let currentPatientId = null;
+let currentPatientId = 'patient_001';
 let activeListeners = [];
 let lastVitalsTimestamp = null;
+const DEFAULT_PATIENT_ID = 'patient_001';
 
 // ============================================
 // DOM Elements
@@ -154,13 +155,11 @@ function loadPatients() {
   });
 
   setConnectionStatus('connected', 'Connected');
-  console.log('✅ Patient selector ready. Enter your patient ID or select from list.');
+  console.log('✅ Patient selector ready. Auto-selecting patient_001.');
   
-  // Auto-select first known patient if available
-  if (knownPatientIds.length > 0) {
-    elements.patientSelect.value = knownPatientIds[0];
-    selectPatient(knownPatientIds[0]);
-  }
+  // Auto-select default patient (patient_001)
+  elements.patientSelect.value = DEFAULT_PATIENT_ID;
+  selectPatient(DEFAULT_PATIENT_ID);
 }
 
 /**

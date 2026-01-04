@@ -49,6 +49,8 @@ export interface UserData {
   email: string;
   role: UserRole;
   createdAt: string;
+  patientId?: string; // For patients: links to patients/{patientId} data
+  assignedPatients?: string[]; // For doctors: list of patientIds they manage
 }
 
 export type AuthUser = {
@@ -56,6 +58,16 @@ export type AuthUser = {
   email?: string | null;
   displayName?: string | null;
 };
+
+// Doctor-Patient Assignment interface
+export interface DoctorPatientAssignment {
+  doctorId: string;
+  patientId: string;
+  assignedAt: string;
+}
+
+// Refs for assignments
+export const assignmentsRef = ref(database, "assignments");
 
 const ADMIN_EMAIL = "admin@diabetescare.com";
 
@@ -171,6 +183,87 @@ export const getAllUsers = async (): Promise<UserData[]> => {
   if (!snapshot.exists()) return [];
   const usersObj = snapshot.val();
   return Object.values(usersObj) as UserData[];
+};
+
+// Get users by role
+export const getUsersByRole = async (role: UserRole): Promise<UserData[]> => {
+  const allUsers = await getAllUsers();
+  return allUsers.filter(u => u.role === role);
+};
+
+// Update user data
+export const updateUserData = async (uid: string, updates: Partial<UserData>): Promise<void> => {
+  const userRef = ref(database, `users/${uid}`);
+  const snapshot = await get(userRef);
+  if (!snapshot.exists()) throw new Error("User not found");
+  const current = snapshot.val() as UserData;
+  await set(userRef, { ...current, ...updates });
+};
+
+// Delete user
+export const deleteUser = async (uid: string): Promise<void> => {
+  const userRef = ref(database, `users/${uid}`);
+  await set(userRef, null);
+};
+
+// Assign patient to doctor
+export const assignPatientToDoctor = async (doctorId: string, patientId: string): Promise<void> => {
+  const assignmentRef = ref(database, `assignments/${doctorId}/${patientId}`);
+  await set(assignmentRef, {
+    doctorId,
+    patientId,
+    assignedAt: new Date().toISOString(),
+  });
+  
+  // Also update doctor's assignedPatients array
+  const doctorRef = ref(database, `users/${doctorId}`);
+  const doctorSnapshot = await get(doctorRef);
+  if (doctorSnapshot.exists()) {
+    const doctorData = doctorSnapshot.val() as UserData;
+    const currentPatients = doctorData.assignedPatients || [];
+    if (!currentPatients.includes(patientId)) {
+      await set(doctorRef, { ...doctorData, assignedPatients: [...currentPatients, patientId] });
+    }
+  }
+};
+
+// Unassign patient from doctor
+export const unassignPatientFromDoctor = async (doctorId: string, patientId: string): Promise<void> => {
+  const assignmentRef = ref(database, `assignments/${doctorId}/${patientId}`);
+  await set(assignmentRef, null);
+  
+  // Also update doctor's assignedPatients array
+  const doctorRef = ref(database, `users/${doctorId}`);
+  const doctorSnapshot = await get(doctorRef);
+  if (doctorSnapshot.exists()) {
+    const doctorData = doctorSnapshot.val() as UserData;
+    const currentPatients = doctorData.assignedPatients || [];
+    await set(doctorRef, { ...doctorData, assignedPatients: currentPatients.filter(p => p !== patientId) });
+  }
+};
+
+// Get assigned patients for a doctor
+export const getDoctorAssignments = async (doctorId: string): Promise<string[]> => {
+  const assignmentsRef = ref(database, `assignments/${doctorId}`);
+  const snapshot = await get(assignmentsRef);
+  if (!snapshot.exists()) return [];
+  return Object.keys(snapshot.val());
+};
+
+// Get all assignments (for admin)
+export const getAllAssignments = async (): Promise<Record<string, string[]>> => {
+  const assignmentsRef = ref(database, "assignments");
+  const snapshot = await get(assignmentsRef);
+  if (!snapshot.exists()) return {};
+  
+  const data = snapshot.val();
+  const result: Record<string, string[]> = {};
+  
+  Object.keys(data).forEach(doctorId => {
+    result[doctorId] = Object.keys(data[doctorId]);
+  });
+  
+  return result;
 };
 
 // Re-export Realtime DB helpers

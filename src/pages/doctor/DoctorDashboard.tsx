@@ -4,6 +4,7 @@ import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { database, ref, get, getDoctorAssignments, UserData } from "@/lib/firebase";
 import { usePatientVitals, Vitals, DeviceStatus, PatientAlerts } from "@/hooks/usePatientVitals";
+import DiabetesChatbot from "@/components/chatbot/DiabetesChatbot";
 
 interface PatientProfile {
   uid: string;
@@ -249,6 +250,7 @@ const DoctorDashboard = () => {
           </div>
         </div>
       </div>
+      <DiabetesChatbot />
     </DashboardLayout>
   );
 };

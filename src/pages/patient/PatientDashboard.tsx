@@ -77,7 +77,7 @@ const PatientDashboard = () => {
               Good {greeting}, {userData?.name || "Patient"}
             </h1>
             <p className="text-muted-foreground mt-1">
-              Your personal health dashboard - Patient ID: <span className="font-mono text-primary">{patientInfo?.id}</span>
+              Firebase Path: <span className="font-mono text-xs text-primary bg-primary/10 px-2 py-0.5 rounded">patients/{patientInfo?.id || userData?.email?.split("@")[0]}/vitals</span>
             </p>
           </div>
           <div className="flex items-center gap-3">

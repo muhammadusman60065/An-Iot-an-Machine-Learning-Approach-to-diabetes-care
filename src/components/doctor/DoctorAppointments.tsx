@@ -44,13 +44,13 @@ const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({ userData }) => 
           new Date(`${a.date} ${a.time}`).getTime() - new Date(`${b.date} ${b.time}`).getTime()
         ));
       } else {
-        // Generate demo appointments if none exist
-        setAppointments(generateDemoAppointments());
+        // No appointments in Firebase - show empty state
+        setAppointments([]);
       }
       setIsLoading(false);
     }, (error) => {
       console.error('Error fetching appointments:', error);
-      setAppointments(generateDemoAppointments());
+      setAppointments([]);
       setIsLoading(false);
     });
 
@@ -208,27 +208,5 @@ const DoctorAppointments: React.FC<DoctorAppointmentsProps> = ({ userData }) => 
     </div>
   );
 };
-
-// Generate demo appointments
-function generateDemoAppointments(): Appointment[] {
-  const today = new Date();
-  const patients = ['John Smith', 'Mary Johnson', 'Robert Williams', 'Sarah Davis', 'Michael Brown'];
-  const types: ('in-person' | 'video' | 'phone')[] = ['in-person', 'video', 'phone'];
-  
-  return Array.from({ length: 8 }, (_, i) => {
-    const date = new Date(today);
-    date.setDate(date.getDate() + Math.floor(i / 2));
-    
-    return {
-      id: `demo-apt-${i}`,
-      patientId: `patient-${i}`,
-      patientName: patients[i % patients.length],
-      date: date.toISOString().split('T')[0],
-      time: `${9 + (i % 6)}:${i % 2 === 0 ? '00' : '30'}`,
-      type: types[i % 3],
-      status: 'scheduled' as const,
-    };
-  });
-}
 
 export default DoctorAppointments;

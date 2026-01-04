@@ -88,12 +88,12 @@ export const useDoctorPatients = (userData: UserData | null): UseDoctorPatientsR
 
     const fetchAssignedPatients = async () => {
       try {
-        // Get doctor's assigned patients
+        // Get doctor's assigned patients from Firebase
         const patientIds = await getDoctorAssignments(userData.uid);
         
-        // If no assignments, use demo data
+        // If no assignments, show empty state (no demo data)
         if (patientIds.length === 0) {
-          setAssignedPatients(generateDemoPatients());
+          setAssignedPatients([]);
           setIsLoading(false);
           return;
         }
@@ -130,15 +130,15 @@ export const useDoctorPatients = (userData: UserData | null): UseDoctorPatientsR
               // Extract ML prediction
               const mlPrediction: MLPrediction | null = data.ml || null;
 
-              // Extract patient info
+              // Extract patient info from Firebase
               const info = data.info || {};
 
               patientDataMap.set(patientId, {
                 patientId,
                 name: info.name || `Patient ${patientId}`,
-                age: info.age || 45,
-                condition: info.condition || "Diabetes Type 2",
-                roomNumber: info.roomNumber || "ICU-101",
+                age: info.age || 0,
+                condition: info.condition || "Unknown",
+                roomNumber: info.roomNumber || "N/A",
                 vitals: latestVitals,
                 alerts,
                 mlPrediction,
@@ -164,8 +164,8 @@ export const useDoctorPatients = (userData: UserData | null): UseDoctorPatientsR
         setIsLoading(false);
       } catch (err) {
         console.error("Error fetching assigned patients:", err);
-        setError("Failed to load patient data");
-        setAssignedPatients(generateDemoPatients());
+        setError("Failed to load patient data from Firebase");
+        setAssignedPatients([]);
         setIsLoading(false);
       }
     };
@@ -196,41 +196,3 @@ export const useDoctorPatients = (userData: UserData | null): UseDoctorPatientsR
     error,
   };
 };
-
-// Generate demo patients when no real assignments exist
-function generateDemoPatients(): PatientFullData[] {
-  const demoPatients = [
-    { name: "John Smith", age: 45, condition: "Diabetes Type 2", roomNumber: "ICU-101" },
-    { name: "Mary Johnson", age: 62, condition: "Hypertension", roomNumber: "ICU-102" },
-    { name: "Robert Williams", age: 55, condition: "Cardiac Patient", roomNumber: "ICU-103" },
-  ];
-
-  return demoPatients.map((p, i) => {
-    const timestamp = new Date(Date.now() - Math.random() * 60000).toISOString();
-    return {
-      patientId: `demo_patient_${i + 1}`,
-      name: p.name,
-      age: p.age,
-      condition: p.condition,
-      roomNumber: p.roomNumber,
-      vitals: {
-        temperature: Number((36.5 + Math.random() * 2).toFixed(1)),
-        heartRate: 65 + Math.floor(Math.random() * 40),
-        spo2: 94 + Math.floor(Math.random() * 6),
-        glucose: 80 + Math.floor(Math.random() * 80),
-        humidity: 40 + Math.floor(Math.random() * 30),
-        timestamp,
-      },
-      alerts: [],
-      mlPrediction: {
-        riskLevel: ["low", "medium", "high"][Math.floor(Math.random() * 3)] as "low" | "medium" | "high",
-        anomalyStatus: Math.random() > 0.7,
-        confidence: 0.85 + Math.random() * 0.1,
-        timestamp,
-      },
-      lastUpdated: timestamp,
-      delaySeconds: Math.floor(Math.random() * 30),
-      isConnected: true,
-    };
-  });
-}

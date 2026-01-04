@@ -31,10 +31,16 @@
     <section class="patient-selector-section">
       <label for="patientSelect">Select Patient:</label>
       <select id="patientSelect" class="patient-dropdown">
-        <option value="">-- Loading patients --</option>
+        <option value="">-- Enter Patient ID --</option>
       </select>
+      <button id="addPatientBtn" class="add-patient-btn" onclick="addCustomPatient()">➕ Add Patient</button>
       <button id="refreshBtn" class="refresh-btn">🔄 Refresh</button>
     </section>
+    
+    <!-- Rules Info -->
+    <div class="rules-info">
+      <small>📋 Using rules: <code>patients/$patientId</code> - Enter your patient ID or click "Add Patient"</small>
+    </div>
 
     <!-- Vital Cards Grid -->
     <section class="vitals-grid" id="vitalsGrid">

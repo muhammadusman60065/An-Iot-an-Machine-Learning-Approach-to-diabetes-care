@@ -3,6 +3,12 @@
  * ====================================================
  * Real-time Firebase integration with live updates
  * No placeholder data - everything from Firebase
+ * 
+ * Database paths:
+ * - patients/{patientId}/vitals/{temperature|humidity|heartRate|spO2|glucose|timestamp}
+ * - patients/{patientId}/alerts/{active|message|timestamp}
+ * - patients/{patientId}/history/{pushId} (same vitals + timestamp)
+ * - patients/{patientId}/ml/{riskLevel|anomaly|confidence}
  */
 
 // ============================================
@@ -24,8 +30,8 @@ const MAX_HISTORY_POINTS = 50;
 // ============================================
 
 let currentPatientId = null;
-let activeListeners = [];  // Track listeners for cleanup
-let lastVitals = null;
+let activeListeners = [];
+let lastVitalsTimestamp = null;
 
 // ============================================
 // DOM Elements
@@ -63,10 +69,6 @@ const elements = {
 // Utility Functions
 // ============================================
 
-/**
- * Determine vital status based on thresholds
- * @returns {'normal'|'warning'|'critical'}
- */
 function getVitalStatus(value, thresholds) {
   if (value === null || value === undefined) return 'normal';
   
@@ -79,9 +81,6 @@ function getVitalStatus(value, thresholds) {
   return 'normal';
 }
 
-/**
- * Update connection status UI
- */
 function setConnectionStatus(status, message) {
   const statusDot = elements.connectionStatus.querySelector('.status-dot');
   const statusText = elements.connectionStatus.querySelector('.status-text');
@@ -90,9 +89,6 @@ function setConnectionStatus(status, message) {
   statusText.textContent = message;
 }
 
-/**
- * Format timestamp for display
- */
 function formatTime(timestamp) {
   if (!timestamp) return '--';
   const date = new Date(timestamp);
@@ -103,9 +99,6 @@ function formatTime(timestamp) {
   });
 }
 
-/**
- * Update last update time display
- */
 function updateLastUpdateTime() {
   elements.lastUpdateTime.textContent = `Last update: ${formatTime(Date.now())}`;
 }
@@ -114,20 +107,26 @@ function updateLastUpdateTime() {
 // Firebase Data Operations
 // ============================================
 
-/**
- * Load all patients and populate dropdown
- */
-async function loadPatients() {
-  try {
-    const patientsRef = firebaseDB.ref('patients');
-    
-    patientsRef.once('value', (snapshot) => {
+function loadPatients() {
+  console.log('🔄 Loading patients...');
+  
+  if (!window.firebaseDB) {
+    console.error('❌ Firebase not initialized');
+    setConnectionStatus('error', 'Firebase not initialized');
+    return;
+  }
+
+  const patientsRef = window.firebaseDB.ref('patients');
+  
+  patientsRef.once('value')
+    .then((snapshot) => {
       const patients = snapshot.val();
       elements.patientSelect.innerHTML = '';
       
       if (!patients) {
-        elements.patientSelect.innerHTML = '<option value="">No patients found</option>';
-        console.log('⚠️ No patients in database. Add patient data to: patients/{patientId}/');
+        elements.patientSelect.innerHTML = '<option value="">No patients found - Add data to patients/{patientId}/</option>';
+        console.log('⚠️ No patients in database. Expected path: patients/{patientId}/');
+        setConnectionStatus('connected', 'Connected - No data');
         return;
       }
 
@@ -142,28 +141,26 @@ async function loadPatients() {
         const patient = patients[patientId];
         const option = document.createElement('option');
         option.value = patientId;
-        option.textContent = patient.info?.name || `Patient ${patientId}`;
+        option.textContent = patient.info?.name || `Patient: ${patientId}`;
         elements.patientSelect.appendChild(option);
       });
 
       console.log(`✅ Loaded ${Object.keys(patients).length} patients`);
+      setConnectionStatus('connected', 'Connected');
       
-      // Auto-select first patient if available
+      // Auto-select first patient
       if (Object.keys(patients).length > 0) {
         const firstPatientId = Object.keys(patients)[0];
         elements.patientSelect.value = firstPatientId;
         selectPatient(firstPatientId);
       }
+    })
+    .catch((error) => {
+      console.error('❌ Error loading patients:', error);
+      setConnectionStatus('error', 'Error: ' + error.message);
     });
-  } catch (error) {
-    console.error('Error loading patients:', error);
-    setConnectionStatus('error', 'Error loading patients');
-  }
 }
 
-/**
- * Clean up existing listeners before setting new ones
- */
 function cleanupListeners() {
   activeListeners.forEach(unsubscribe => {
     try {
@@ -176,19 +173,16 @@ function cleanupListeners() {
   console.log('🧹 Cleaned up listeners');
 }
 
-/**
- * Select a patient and start real-time listeners
- */
 function selectPatient(patientId) {
   if (!patientId) {
     console.log('No patient selected');
     return;
   }
 
-  // Cleanup previous listeners
   cleanupListeners();
   
   currentPatientId = patientId;
+  lastVitalsTimestamp = null;
   console.log(`👤 Selected patient: ${patientId}`);
   
   // Clear charts
@@ -200,6 +194,7 @@ function selectPatient(patientId) {
   listenToVitals(patientId);
   listenToHistory(patientId);
   listenToAlerts(patientId);
+  listenToMLPredictions(patientId);
   listenToDeviceStatus(patientId);
 
   setConnectionStatus('connected', 'Connected');
@@ -210,32 +205,33 @@ function selectPatient(patientId) {
  * Firebase path: patients/{patientId}/vitals
  */
 function listenToVitals(patientId) {
-  const vitalsRef = firebaseDB.ref(`patients/${patientId}/vitals`);
+  const vitalsRef = window.firebaseDB.ref(`patients/${patientId}/vitals`);
   
-  const unsubscribe = vitalsRef.on('value', (snapshot) => {
+  const callback = vitalsRef.on('value', (snapshot) => {
     const vitals = snapshot.val();
     
     if (!vitals) {
-      console.log('No vitals data available');
+      console.log('📡 No vitals data yet at patients/' + patientId + '/vitals');
       return;
     }
 
-    console.log('📡 Vitals update received:', vitals);
+    console.log('📡 Vitals update:', vitals);
     updateVitalsDisplay(vitals);
     
-    // Save to history if this is a new reading
-    if (vitals.timestamp !== lastVitals?.timestamp) {
+    // Save to history if this is a new reading (different timestamp)
+    const currentTimestamp = vitals.timestamp || Date.now();
+    if (currentTimestamp !== lastVitalsTimestamp) {
       saveToHistory(patientId, vitals);
-      lastVitals = vitals;
+      lastVitalsTimestamp = currentTimestamp;
     }
     
     updateLastUpdateTime();
   }, (error) => {
-    console.error('Error listening to vitals:', error);
+    console.error('❌ Error listening to vitals:', error);
     setConnectionStatus('error', 'Connection error');
   });
 
-  activeListeners.push(() => vitalsRef.off('value', unsubscribe));
+  activeListeners.push(() => vitalsRef.off('value', callback));
 }
 
 /**
@@ -243,31 +239,29 @@ function listenToVitals(patientId) {
  * Firebase path: patients/{patientId}/history
  */
 function listenToHistory(patientId) {
-  const historyRef = firebaseDB.ref(`patients/${patientId}/history`)
+  const historyRef = window.firebaseDB.ref(`patients/${patientId}/history`)
     .orderByChild('timestamp')
     .limitToLast(MAX_HISTORY_POINTS);
   
-  const unsubscribe = historyRef.on('value', (snapshot) => {
+  const callback = historyRef.on('value', (snapshot) => {
     const historyData = snapshot.val();
     
     if (!historyData) {
-      console.log('No history data available');
+      console.log('📊 No history data yet at patients/' + patientId + '/history');
       return;
     }
 
-    // Convert object to array
     const historyArray = Object.values(historyData);
     console.log(`📊 History loaded: ${historyArray.length} points`);
     
-    // Update charts
     if (window.chartFunctions) {
       window.chartFunctions.updateCharts(historyArray);
     }
   }, (error) => {
-    console.error('Error listening to history:', error);
+    console.error('❌ Error listening to history:', error);
   });
 
-  activeListeners.push(() => historyRef.off('value', unsubscribe));
+  activeListeners.push(() => historyRef.off('value', callback));
 }
 
 /**
@@ -275,46 +269,64 @@ function listenToHistory(patientId) {
  * Firebase path: patients/{patientId}/alerts
  */
 function listenToAlerts(patientId) {
-  const alertsRef = firebaseDB.ref(`patients/${patientId}/alerts`);
+  const alertsRef = window.firebaseDB.ref(`patients/${patientId}/alerts`);
   
-  const unsubscribe = alertsRef.on('value', (snapshot) => {
+  const callback = alertsRef.on('value', (snapshot) => {
     const alerts = snapshot.val();
     updateAlertsDisplay(alerts);
   }, (error) => {
-    console.error('Error listening to alerts:', error);
+    console.error('❌ Error listening to alerts:', error);
   });
 
-  activeListeners.push(() => alertsRef.off('value', unsubscribe));
+  activeListeners.push(() => alertsRef.off('value', callback));
+}
+
+/**
+ * Listen to ML predictions
+ * Firebase path: patients/{patientId}/ml
+ */
+function listenToMLPredictions(patientId) {
+  const mlRef = window.firebaseDB.ref(`patients/${patientId}/ml`);
+  
+  const callback = mlRef.on('value', (snapshot) => {
+    const ml = snapshot.val();
+    if (ml) {
+      console.log('🤖 ML prediction update:', ml);
+      updateMLDisplay(ml);
+    }
+  });
+
+  activeListeners.push(() => mlRef.off('value', callback));
 }
 
 /**
  * Listen to device status
  */
 function listenToDeviceStatus(patientId) {
-  const deviceRef = firebaseDB.ref(`patients/${patientId}/device`);
+  const deviceRef = window.firebaseDB.ref(`patients/${patientId}/device`);
   
-  const unsubscribe = deviceRef.on('value', (snapshot) => {
+  const callback = deviceRef.on('value', (snapshot) => {
     const device = snapshot.val();
     updateDeviceDisplay(device);
   });
 
-  activeListeners.push(() => deviceRef.off('value', unsubscribe));
+  activeListeners.push(() => deviceRef.off('value', callback));
 }
 
 /**
  * Save current vitals to history
- * Creates a new entry at: patients/{patientId}/history/{pushId}
+ * Creates: patients/{patientId}/history/{pushId}
  */
 function saveToHistory(patientId, vitals) {
   if (!vitals) return;
 
-  const historyRef = firebaseDB.ref(`patients/${patientId}/history`);
+  const historyRef = window.firebaseDB.ref(`patients/${patientId}/history`);
   const newEntry = {
-    temperature: vitals.temperature || null,
-    humidity: vitals.humidity || null,
-    heartRate: vitals.heartRate || null,
-    spO2: vitals.spO2 || null,
-    glucose: vitals.glucose || null,
+    temperature: vitals.temperature ?? null,
+    humidity: vitals.humidity ?? null,
+    heartRate: vitals.heartRate ?? null,
+    spO2: vitals.spO2 ?? null,
+    glucose: vitals.glucose ?? null,
     timestamp: vitals.timestamp || Date.now()
   };
 
@@ -323,7 +335,7 @@ function saveToHistory(patientId, vitals) {
       console.log('📝 Saved to history');
     })
     .catch(error => {
-      console.error('Error saving to history:', error);
+      console.error('❌ Error saving to history:', error);
     });
 }
 
@@ -331,27 +343,24 @@ function saveToHistory(patientId, vitals) {
 // UI Update Functions
 // ============================================
 
-/**
- * Update vital cards with new data
- */
 function updateVitalsDisplay(vitals) {
   // Temperature
-  if (vitals.temperature !== undefined) {
-    elements.tempValue.textContent = vitals.temperature.toFixed(1);
+  if (vitals.temperature !== undefined && vitals.temperature !== null) {
+    elements.tempValue.textContent = Number(vitals.temperature).toFixed(1);
     const tempStatus = getVitalStatus(vitals.temperature, VITAL_THRESHOLDS.temperature);
     elements.tempStatus.className = `vital-status ${tempStatus}`;
     elements.tempCard.classList.toggle('alert', tempStatus === 'critical');
   }
 
   // Humidity
-  if (vitals.humidity !== undefined) {
-    elements.humidityValue.textContent = vitals.humidity.toFixed(0);
+  if (vitals.humidity !== undefined && vitals.humidity !== null) {
+    elements.humidityValue.textContent = Math.round(vitals.humidity);
     const humidityStatus = getVitalStatus(vitals.humidity, VITAL_THRESHOLDS.humidity);
     elements.humidityStatus.className = `vital-status ${humidityStatus}`;
   }
 
   // Heart Rate
-  if (vitals.heartRate !== undefined) {
+  if (vitals.heartRate !== undefined && vitals.heartRate !== null) {
     elements.heartRateValue.textContent = Math.round(vitals.heartRate);
     const hrStatus = getVitalStatus(vitals.heartRate, VITAL_THRESHOLDS.heartRate);
     elements.heartRateStatus.className = `vital-status ${hrStatus}`;
@@ -359,28 +368,25 @@ function updateVitalsDisplay(vitals) {
   }
 
   // SpO2
-  if (vitals.spO2 !== undefined) {
-    elements.spo2Value.textContent = vitals.spO2.toFixed(0);
+  if (vitals.spO2 !== undefined && vitals.spO2 !== null) {
+    elements.spo2Value.textContent = Math.round(vitals.spO2);
     const spo2Status = getVitalStatus(vitals.spO2, VITAL_THRESHOLDS.spO2);
     elements.spo2Status.className = `vital-status ${spo2Status}`;
     elements.spo2Card.classList.toggle('alert', spo2Status === 'critical');
   }
 
   // Glucose
-  if (vitals.glucose !== undefined) {
+  if (vitals.glucose !== undefined && vitals.glucose !== null) {
     elements.glucoseValue.textContent = Math.round(vitals.glucose);
     const glucoseStatus = getVitalStatus(vitals.glucose, VITAL_THRESHOLDS.glucose);
     elements.glucoseStatus.className = `vital-status ${glucoseStatus}`;
     elements.glucoseCard.classList.toggle('alert', glucoseStatus === 'critical');
   }
 
-  // Generate alerts for critical values
+  // Auto-generate alerts for critical values
   checkAndCreateAlerts(vitals);
 }
 
-/**
- * Update alerts display
- */
 function updateAlertsDisplay(alerts) {
   if (!alerts || Object.keys(alerts).length === 0) {
     elements.alertsContainer.innerHTML = '<div class="no-alerts">✅ No active alerts - All vitals normal</div>';
@@ -389,7 +395,14 @@ function updateAlertsDisplay(alerts) {
 
   let alertsHTML = '';
   
-  Object.entries(alerts).forEach(([alertId, alert]) => {
+  // Sort by timestamp (newest first)
+  const sortedAlerts = Object.entries(alerts).sort((a, b) => {
+    return (b[1].timestamp || 0) - (a[1].timestamp || 0);
+  });
+
+  sortedAlerts.forEach(([alertId, alert]) => {
+    if (!alert.active && alert.active !== undefined) return; // Skip inactive alerts
+    
     const alertType = alert.type || 'warning';
     const icon = alertType === 'critical' ? '🚨' : (alertType === 'warning' ? '⚠️' : 'ℹ️');
     
@@ -405,12 +418,24 @@ function updateAlertsDisplay(alerts) {
     `;
   });
 
-  elements.alertsContainer.innerHTML = alertsHTML;
+  elements.alertsContainer.innerHTML = alertsHTML || '<div class="no-alerts">✅ No active alerts</div>';
 }
 
-/**
- * Update device status display
- */
+function updateMLDisplay(ml) {
+  // Update device card to show ML status if no device data
+  if (ml.riskLevel) {
+    const riskColors = {
+      low: 'normal',
+      medium: 'warning',
+      high: 'critical'
+    };
+    const status = riskColors[ml.riskLevel.toLowerCase()] || 'normal';
+    
+    // Could add ML display panel here in the future
+    console.log(`🤖 Risk Level: ${ml.riskLevel}, Anomaly: ${ml.anomaly}, Confidence: ${ml.confidence}`);
+  }
+}
+
 function updateDeviceDisplay(device) {
   if (!device) {
     elements.deviceStatus.textContent = 'Offline';
@@ -427,22 +452,20 @@ function updateDeviceDisplay(device) {
   elements.deviceStatusIndicator.className = `vital-status ${isOnline ? 'normal' : 'offline'}`;
 }
 
-/**
- * Check vitals and create alerts for critical values
- */
 function checkAndCreateAlerts(vitals) {
   if (!currentPatientId) return;
 
   const alerts = {};
   const timestamp = Date.now();
 
-  // Check each vital
+  // Check each vital for critical values
   if (vitals.temperature) {
     const status = getVitalStatus(vitals.temperature, VITAL_THRESHOLDS.temperature);
     if (status === 'critical') {
       alerts[`temp_${timestamp}`] = {
         type: 'critical',
-        message: `Critical temperature: ${vitals.temperature.toFixed(1)}°C`,
+        active: true,
+        message: `Critical temperature: ${Number(vitals.temperature).toFixed(1)}°C`,
         metric: 'temperature',
         value: vitals.temperature,
         timestamp
@@ -455,6 +478,7 @@ function checkAndCreateAlerts(vitals) {
     if (status === 'critical') {
       alerts[`hr_${timestamp}`] = {
         type: 'critical',
+        active: true,
         message: `Critical heart rate: ${Math.round(vitals.heartRate)} BPM`,
         metric: 'heartRate',
         value: vitals.heartRate,
@@ -468,7 +492,8 @@ function checkAndCreateAlerts(vitals) {
     if (status === 'critical') {
       alerts[`spo2_${timestamp}`] = {
         type: 'critical',
-        message: `Critical SpO2: ${vitals.spO2.toFixed(0)}%`,
+        active: true,
+        message: `Critical SpO2: ${Math.round(vitals.spO2)}%`,
         metric: 'spO2',
         value: vitals.spO2,
         timestamp
@@ -481,6 +506,7 @@ function checkAndCreateAlerts(vitals) {
     if (status === 'critical') {
       alerts[`glucose_${timestamp}`] = {
         type: 'critical',
+        active: true,
         message: `Critical glucose: ${Math.round(vitals.glucose)} mg/dL`,
         metric: 'glucose',
         value: vitals.glucose,
@@ -491,20 +517,20 @@ function checkAndCreateAlerts(vitals) {
 
   // Save new alerts to Firebase
   if (Object.keys(alerts).length > 0) {
-    const alertsRef = firebaseDB.ref(`patients/${currentPatientId}/alerts`);
+    const alertsRef = window.firebaseDB.ref(`patients/${currentPatientId}/alerts`);
     alertsRef.update(alerts);
   }
 }
 
 /**
- * Dismiss an alert
+ * Dismiss an alert (global function for onclick)
  */
 window.dismissAlert = function(alertId) {
-  if (!currentPatientId) return;
+  if (!currentPatientId || !alertId) return;
   
-  const alertRef = firebaseDB.ref(`patients/${currentPatientId}/alerts/${alertId}`);
-  alertRef.remove()
-    .then(() => console.log('Alert dismissed'))
+  const alertRef = window.firebaseDB.ref(`patients/${currentPatientId}/alerts/${alertId}`);
+  alertRef.update({ active: false })
+    .then(() => console.log('Alert dismissed:', alertId))
     .catch(error => console.error('Error dismissing alert:', error));
 };
 
@@ -512,51 +538,42 @@ window.dismissAlert = function(alertId) {
 // Event Listeners
 // ============================================
 
-// Patient selection change
 elements.patientSelect.addEventListener('change', (e) => {
   selectPatient(e.target.value);
 });
 
-// Refresh button
 elements.refreshBtn.addEventListener('click', () => {
-  if (currentPatientId) {
-    selectPatient(currentPatientId);
-  } else {
-    loadPatients();
-  }
+  console.log('🔄 Refreshing...');
+  loadPatients();
 });
 
 // ============================================
-// Initialization
+// Initialize on Page Load
 // ============================================
 
 document.addEventListener('DOMContentLoaded', () => {
   console.log('🚀 Dashboard initializing...');
+  console.log('📍 Expected Firebase paths:');
+  console.log('   - patients/{patientId}/vitals/{temperature|humidity|heartRate|spO2|glucose|timestamp}');
+  console.log('   - patients/{patientId}/history/{pushId}');
+  console.log('   - patients/{patientId}/alerts/{alertId}');
+  console.log('   - patients/{patientId}/ml/{riskLevel|anomaly|confidence}');
   
   // Initialize charts
   if (window.chartFunctions) {
     window.chartFunctions.initializeCharts();
   }
-
-  // Monitor Firebase connection
-  const connectedRef = firebaseDB.ref('.info/connected');
-  connectedRef.on('value', (snapshot) => {
-    if (snapshot.val() === true) {
-      setConnectionStatus('connected', 'Connected to Firebase');
-      console.log('🔥 Connected to Firebase');
-    } else {
-      setConnectionStatus('error', 'Disconnected');
-      console.log('❌ Disconnected from Firebase');
-    }
-  });
-
-  // Load patients
-  loadPatients();
+  
+  // Small delay to ensure Firebase is initialized
+  setTimeout(() => {
+    loadPatients();
+  }, 500);
 });
 
-// Cleanup on page unload
-window.addEventListener('beforeunload', () => {
-  cleanupListeners();
+// Handle page visibility for reconnection
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && currentPatientId) {
+    console.log('🔄 Page visible - refreshing connection');
+    selectPatient(currentPatientId);
+  }
 });
-
-console.log('📱 App.js loaded');

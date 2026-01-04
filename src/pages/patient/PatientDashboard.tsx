@@ -154,23 +154,31 @@ const PatientDashboard = () => {
           <div className="bg-card rounded-xl shadow-lg p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-foreground">Device Status</h3>
-              <div className={`w-3 h-3 rounded-full ${status?.deviceConnected ? 'bg-success animate-pulse' : 'bg-destructive'}`} />
+              <div className={`w-3 h-3 rounded-full ${vitals ? 'bg-success animate-pulse' : 'bg-destructive'}`} />
             </div>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
+                <span className="text-muted-foreground">Connection:</span>
+                <span className={vitals ? 'text-success font-medium' : 'text-destructive font-medium'}>
+                  {vitals ? 'Connected' : 'Disconnected'}
+                </span>
+              </div>
+              <div className="flex justify-between">
                 <span className="text-muted-foreground">MAX30100:</span>
-                <span className={status?.max30100_online ? 'text-success font-medium' : 'text-destructive font-medium'}>
-                  {status?.max30100_online ? 'Online' : 'Offline'}
+                <span className={status?.max30100_online !== false ? 'text-success font-medium' : 'text-destructive font-medium'}>
+                  {status?.max30100_online !== false ? 'Online' : 'Offline'}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Last Update:</span>
-                <span className="text-foreground font-medium">{status?.lastUpdate || '--'}</span>
+                <span className="text-foreground font-medium">{vitals?.timestamp ? new Date(vitals.timestamp).toLocaleTimeString() : status?.lastUpdate || 'Live'}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Signal:</span>
-                <span className="text-foreground font-medium">{status?.rssi || '--'} dBm</span>
-              </div>
+              {status?.rssi && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Signal:</span>
+                  <span className="text-foreground font-medium">{status.rssi} dBm</span>
+                </div>
+              )}
             </div>
           </div>
         </div>

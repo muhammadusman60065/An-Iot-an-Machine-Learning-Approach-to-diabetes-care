@@ -8,7 +8,7 @@ export interface PatientVitals {
   spo2: number;
   glucose: number;
   humidity: number;
-  timestamp: string;
+  timestamp: string | number; // Support both ISO string and Unix timestamp from Firebase
 }
 
 export interface PatientAlert {
@@ -126,17 +126,19 @@ export const usePatientRealtimeData = (userData: UserData | null): UsePatientRea
   // Get patientId from userData - patients use their own patientId
   const patientId = userData?.patientId || (userData?.role === "patient" ? `patient_${userData.uid.slice(0, 8)}` : null);
 
-  // Update delay timer every second
+  // Track raw timestamp from Firebase (in milliseconds)
+  const [lastTimestampMs, setLastTimestampMs] = useState<number | null>(null);
+
+  // Update delay timer every second using raw timestamp
   useEffect(() => {
     const interval = setInterval(() => {
-      if (lastUpdated) {
-        const lastTime = new Date(lastUpdated).getTime();
+      if (lastTimestampMs) {
         const now = Date.now();
-        setDelaySeconds(Math.floor((now - lastTime) / 1000));
+        setDelaySeconds(Math.floor((now - lastTimestampMs) / 1000));
       }
     }, 1000);
     return () => clearInterval(interval);
-  }, [lastUpdated]);
+  }, [lastTimestampMs]);
 
   const analyzeVitalsWithAI = useCallback(async (currentVitals: PatientVitals, history: PatientVitals[]) => {
     const now = Date.now();
@@ -241,7 +243,9 @@ export const usePatientRealtimeData = (userData: UserData | null): UsePatientRea
       setVitals(initialVitals);
       setVitalsHistory(initialHistory);
       processVitals(initialVitals, initialHistory);
-      setLastUpdated(initialVitals.timestamp);
+      const nowMs = Date.now();
+      setLastUpdated(new Date(nowMs).toISOString());
+      setLastTimestampMs(nowMs);
       
       setPatientInfo({
         id: patientId,
@@ -259,7 +263,9 @@ export const usePatientRealtimeData = (userData: UserData | null): UsePatientRea
           processVitals(newVitals, newHistory);
           return newHistory;
         });
-        setLastUpdated(newVitals.timestamp);
+        const nowMs = Date.now();
+        setLastUpdated(new Date(nowMs).toISOString());
+        setLastTimestampMs(nowMs);
       }, 3000);
     };
 
@@ -288,13 +294,27 @@ export const usePatientRealtimeData = (userData: UserData | null): UsePatientRea
             }
             
             if (readings.length > 0) {
-              readings.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+              // Parse timestamps - support both ISO strings and Unix timestamps
+              readings.sort((a, b) => {
+                const timeA = typeof a.timestamp === 'number' ? a.timestamp : new Date(a.timestamp).getTime();
+                const timeB = typeof b.timestamp === 'number' ? b.timestamp : new Date(b.timestamp).getTime();
+                return timeB - timeA;
+              });
               const latestVitals = readings[0];
               const historySlice = readings.slice(0, 20);
+              
+              // Calculate raw timestamp in ms from Firebase data
+              const rawTimestampMs = typeof latestVitals.timestamp === 'number' 
+                ? latestVitals.timestamp 
+                : new Date(latestVitals.timestamp).getTime();
+              
               setVitals(latestVitals);
               setVitalsHistory(historySlice);
               processVitals(latestVitals, historySlice);
-              setLastUpdated(latestVitals.timestamp);
+              setLastUpdated(typeof latestVitals.timestamp === 'number' 
+                ? new Date(latestVitals.timestamp).toISOString() 
+                : latestVitals.timestamp);
+              setLastTimestampMs(rawTimestampMs);
               setIsConnected(true);
             }
           } else {

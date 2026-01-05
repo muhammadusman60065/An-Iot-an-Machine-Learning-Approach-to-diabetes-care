@@ -28,6 +28,7 @@ export default {
           foreground: "hsl(var(--primary-foreground))",
           light: "hsl(var(--primary-light))",
           glow: "hsl(var(--primary-glow))",
+          end: "hsl(var(--primary-end))",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -96,6 +97,7 @@ export default {
         'xl': 'var(--shadow-xl)',
         'glow': 'var(--shadow-glow)',
         'card': 'var(--shadow-card)',
+        'primary': 'var(--shadow-primary)',
       },
       keyframes: {
         "accordion-down": {
@@ -122,6 +124,10 @@ export default {
           "0%": { transform: "scale(1)", opacity: "1" },
           "100%": { transform: "scale(1.5)", opacity: "0" },
         },
+        "shimmer": {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(100%)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -130,6 +136,7 @@ export default {
         "slide-up": "slide-up 0.6s ease-out forwards",
         "scale-in": "scale-in 0.4s ease-out forwards",
         "pulse-ring": "pulse-ring 1.5s ease-out infinite",
+        "shimmer": "shimmer 2s infinite",
       },
     },
   },

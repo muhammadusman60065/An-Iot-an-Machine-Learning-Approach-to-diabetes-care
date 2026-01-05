@@ -23,8 +23,8 @@ const firebaseConfig = {
   databaseURL: "https://diabetes-monitoring-fyp-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "diabetes-monitoring-fyp",
   storageBucket: "diabetes-monitoring-fyp.firebasestorage.app",
-  messagingSenderId: "000000000000",
-  appId: "1:000000000000:web:placeholder",
+  messagingSenderId: "1032434555214",
+  appId: "1:1032434555214:web:f5c505c4e41faafbd6e61f",
 };
 
 // Initialize Firebase

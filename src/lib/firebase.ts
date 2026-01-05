@@ -22,9 +22,9 @@ const firebaseConfig = {
   authDomain: "diabetes-monitoring-fyp.firebaseapp.com",
   databaseURL: "https://diabetes-monitoring-fyp-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "diabetes-monitoring-fyp",
-  storageBucket: "diabetes-monitoring-fyp.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abc123def456",
+  storageBucket: "diabetes-monitoring-fyp.firebasestorage.app",
+  messagingSenderId: "000000000000",
+  appId: "1:000000000000:web:placeholder",
 };
 
 // Initialize Firebase

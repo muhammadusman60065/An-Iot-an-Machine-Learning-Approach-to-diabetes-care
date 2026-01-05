@@ -1,32 +1,22 @@
 import { useState, useEffect } from 'react';
-import { database, ref, onValue } from '@/lib/firebase';
+import { ref, onValue, off } from 'firebase/database';
+import { database } from '../lib/firebase';
+import { Vitals, DeviceStatus, Alert } from '../types';
 
-export interface Vitals {
-  temperature: number;
-  humidity: number;
-  heartRate: number;
-  spO2: number;
-  glucose: number;
-  timestamp?: number | string;
+interface UsePatientVitalsReturn {
+  vitals: Vitals | null;
+  status: DeviceStatus | null;
+  alerts: Alert | null;
+  loading: boolean;
+  error: string | null;
 }
 
-export interface DeviceStatus {
-  deviceConnected: boolean;
-  max30100_online: boolean;
-  lastUpdate: string;
-  rssi: number;
-}
-
-export interface PatientAlerts {
-  active: boolean;
-  message: string;
-}
-
-export const usePatientVitals = (patientId: string | null) => {
+export const usePatientVitals = (patientId: string | null): UsePatientVitalsReturn => {
   const [vitals, setVitals] = useState<Vitals | null>(null);
   const [status, setStatus] = useState<DeviceStatus | null>(null);
-  const [alerts, setAlerts] = useState<PatientAlerts | null>(null);
+  const [alerts, setAlerts] = useState<Alert | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!patientId) {
@@ -34,43 +24,76 @@ export const usePatientVitals = (patientId: string | null) => {
       return;
     }
 
-    console.log("🔗 usePatientVitals - Listening to:", `patients/${patientId}/vitals`);
+    setLoading(true);
+    setError(null);
 
-    // Listen to vitals
     const vitalsRef = ref(database, `patients/${patientId}/vitals`);
     const statusRef = ref(database, `patients/${patientId}/status`);
     const alertsRef = ref(database, `patients/${patientId}/alerts`);
 
-    const vitalsUnsubscribe = onValue(vitalsRef, (snapshot) => {
-      console.log("📡 Vitals snapshot exists:", snapshot.exists());
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        console.log("📡 Raw vitals data:", data);
-        setVitals(data);
-      } else {
-        setVitals(null);
+    let loadedCount = 0;
+    const checkLoaded = () => {
+      loadedCount++;
+      if (loadedCount >= 3) {
+        setLoading(false);
       }
-      setLoading(false);
-    }, (error) => {
-      console.error("❌ Vitals error:", error);
-      setLoading(false);
-    });
+    };
 
-    const statusUnsubscribe = onValue(statusRef, (snapshot) => {
-      console.log("📡 Status snapshot exists:", snapshot.exists());
-      if (snapshot.exists()) {
-        setStatus(snapshot.val());
+    // Listen to vitals
+    const vitalsUnsubscribe = onValue(
+      vitalsRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          setVitals(snapshot.val() as Vitals);
+        } else {
+          setVitals(null);
+        }
+        checkLoaded();
+      },
+      (err) => {
+        console.error('Error fetching vitals:', err);
+        setError('Failed to load vitals data');
+        checkLoaded();
       }
-    });
+    );
 
-    const alertsUnsubscribe = onValue(alertsRef, (snapshot) => {
-      console.log("📡 Alerts snapshot exists:", snapshot.exists());
-      if (snapshot.exists()) {
-        setAlerts(snapshot.val());
+    // Listen to device status
+    const statusUnsubscribe = onValue(
+      statusRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          setStatus(snapshot.val() as DeviceStatus);
+        } else {
+          setStatus(null);
+        }
+        checkLoaded();
+      },
+      (err) => {
+        console.error('Error fetching status:', err);
+        setError('Failed to load device status');
+        checkLoaded();
       }
-    });
+    );
 
-    // Cleanup listeners
+    // Listen to alerts
+    const alertsUnsubscribe = onValue(
+      alertsRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          setAlerts(snapshot.val() as Alert);
+        } else {
+          setAlerts(null);
+        }
+        checkLoaded();
+      },
+      (err) => {
+        console.error('Error fetching alerts:', err);
+        setError('Failed to load alerts');
+        checkLoaded();
+      }
+    );
+
+    // Cleanup listeners on unmount
     return () => {
       vitalsUnsubscribe();
       statusUnsubscribe();
@@ -78,5 +101,7 @@ export const usePatientVitals = (patientId: string | null) => {
     };
   }, [patientId]);
 
-  return { vitals, status, alerts, loading };
+  return { vitals, status, alerts, loading, error };
 };
+
+export default usePatientVitals;

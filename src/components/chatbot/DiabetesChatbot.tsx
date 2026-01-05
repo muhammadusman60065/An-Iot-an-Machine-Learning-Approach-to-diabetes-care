@@ -119,15 +119,26 @@ const DiabetesChatbot = () => {
   };
 
   const streamChat = async (userMessages: Message[]) => {
+    // Get the current session to use the auth token
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session?.access_token) {
+      throw new Error("Please log in to use the chatbot.");
+    }
+
     const resp = await fetch(CHAT_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        Authorization: `Bearer ${session.access_token}`,
+        "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
       },
       body: JSON.stringify({ messages: userMessages }),
     });
 
+    if (resp.status === 401) {
+      throw new Error("Session expired. Please log in again.");
+    }
     if (resp.status === 429) {
       throw new Error("Rate limit exceeded. Please wait a moment and try again.");
     }

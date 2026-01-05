@@ -3,20 +3,11 @@ import { ref, onValue, off } from 'firebase/database';
 import { database } from '../lib/firebase';
 import { Vitals, DeviceStatus, Alert } from '../types';
 
-interface UsePatientVitalsReturn {
-  vitals: Vitals | null;
-  status: DeviceStatus | null;
-  alerts: Alert | null;
-  loading: boolean;
-  error: string | null;
-}
-
-export const usePatientVitals = (patientId: string | null): UsePatientVitalsReturn => {
+export const usePatientVitals = (patientId: string | undefined) => {
   const [vitals, setVitals] = useState<Vitals | null>(null);
   const [status, setStatus] = useState<DeviceStatus | null>(null);
   const [alerts, setAlerts] = useState<Alert | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!patientId) {
@@ -24,84 +15,29 @@ export const usePatientVitals = (patientId: string | null): UsePatientVitalsRetu
       return;
     }
 
-    setLoading(true);
-    setError(null);
-
     const vitalsRef = ref(database, `patients/${patientId}/vitals`);
     const statusRef = ref(database, `patients/${patientId}/status`);
     const alertsRef = ref(database, `patients/${patientId}/alerts`);
 
-    let loadedCount = 0;
-    const checkLoaded = () => {
-      loadedCount++;
-      if (loadedCount >= 3) {
-        setLoading(false);
-      }
-    };
+    const vitalsUnsubscribe = onValue(vitalsRef, (snapshot) => {
+      setVitals(snapshot.val());
+      setLoading(false);
+    });
 
-    // Listen to vitals
-    const vitalsUnsubscribe = onValue(
-      vitalsRef,
-      (snapshot) => {
-        if (snapshot.exists()) {
-          setVitals(snapshot.val() as Vitals);
-        } else {
-          setVitals(null);
-        }
-        checkLoaded();
-      },
-      (err) => {
-        console.error('Error fetching vitals:', err);
-        setError('Failed to load vitals data');
-        checkLoaded();
-      }
-    );
+    const statusUnsubscribe = onValue(statusRef, (snapshot) => {
+      setStatus(snapshot.val());
+    });
 
-    // Listen to device status
-    const statusUnsubscribe = onValue(
-      statusRef,
-      (snapshot) => {
-        if (snapshot.exists()) {
-          setStatus(snapshot.val() as DeviceStatus);
-        } else {
-          setStatus(null);
-        }
-        checkLoaded();
-      },
-      (err) => {
-        console.error('Error fetching status:', err);
-        setError('Failed to load device status');
-        checkLoaded();
-      }
-    );
+    const alertsUnsubscribe = onValue(alertsRef, (snapshot) => {
+      setAlerts(snapshot.val());
+    });
 
-    // Listen to alerts
-    const alertsUnsubscribe = onValue(
-      alertsRef,
-      (snapshot) => {
-        if (snapshot.exists()) {
-          setAlerts(snapshot.val() as Alert);
-        } else {
-          setAlerts(null);
-        }
-        checkLoaded();
-      },
-      (err) => {
-        console.error('Error fetching alerts:', err);
-        setError('Failed to load alerts');
-        checkLoaded();
-      }
-    );
-
-    // Cleanup listeners on unmount
     return () => {
-      vitalsUnsubscribe();
-      statusUnsubscribe();
-      alertsUnsubscribe();
+      off(vitalsRef);
+      off(statusRef);
+      off(alertsRef);
     };
   }, [patientId]);
 
-  return { vitals, status, alerts, loading, error };
+  return { vitals, status, alerts, loading };
 };
-
-export default usePatientVitals;

@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -25,14 +26,109 @@ interface AnalysisResult {
   timestamp: string;
 }
 
+// Rate limiting: track requests per user
+const requestCounts = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT = 30; // requests per window
+const RATE_WINDOW_MS = 60000; // 1 minute window
+
+function checkRateLimit(userId: string): boolean {
+  const now = Date.now();
+  const userLimit = requestCounts.get(userId);
+  
+  if (!userLimit || now > userLimit.resetTime) {
+    requestCounts.set(userId, { count: 1, resetTime: now + RATE_WINDOW_MS });
+    return true;
+  }
+  
+  if (userLimit.count >= RATE_LIMIT) {
+    return false;
+  }
+  
+  userLimit.count++;
+  return true;
+}
+
+// Input validation for vitals data
+function validateVitals(vitals: unknown): vitals is VitalsData {
+  if (!vitals || typeof vitals !== 'object') return false;
+  
+  const v = vitals as Record<string, unknown>;
+  
+  // Check required numeric fields are present and within reasonable ranges
+  if (typeof v.temperature !== 'number' || v.temperature < 20 || v.temperature > 50) return false;
+  if (typeof v.heartRate !== 'number' || v.heartRate < 0 || v.heartRate > 300) return false;
+  if (typeof v.spO2 !== 'number' || v.spO2 < 0 || v.spO2 > 100) return false;
+  if (typeof v.glucose !== 'number' || v.glucose < 0 || v.glucose > 1000) return false;
+  if (typeof v.humidity !== 'number' || v.humidity < 0 || v.humidity > 100) return false;
+  
+  return true;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const vitals: VitalsData = await req.json();
-    console.log("Analyzing vitals:", vitals);
+    // Authentication check
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      console.log("No authorization header provided");
+      return new Response(JSON.stringify({ error: "Authorization required" }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Verify the user with Supabase
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error("Supabase environment variables not configured");
+      throw new Error("Server configuration error");
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: { Authorization: authHeader },
+      },
+    });
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      console.log("Authentication failed:", authError?.message);
+      return new Response(JSON.stringify({ error: "Invalid or expired token" }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log("Authenticated user:", user.id);
+
+    // Rate limiting check
+    if (!checkRateLimit(user.id)) {
+      console.log("Rate limit exceeded for user:", user.id);
+      return new Response(JSON.stringify({ error: "Rate limit exceeded. Please wait before sending more requests." }), {
+        status: 429,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' },
+      });
+    }
+
+    const rawVitals = await req.json();
+    
+    // Input validation
+    if (!validateVitals(rawVitals)) {
+      console.log("Invalid vitals data received:", rawVitals);
+      return new Response(JSON.stringify({ error: "Invalid vitals data. All values must be numbers within valid ranges." }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const vitals: VitalsData = rawVitals;
+    console.log("Analyzing vitals for user:", user.id);
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
@@ -107,7 +203,7 @@ Respond with this exact JSON structure:
     const aiResponse = await response.json();
     const content = aiResponse.choices?.[0]?.message?.content;
     
-    console.log("AI response content:", content);
+    console.log("AI response received for user:", user.id);
 
     let analysisResult: AnalysisResult;
     
@@ -139,8 +235,6 @@ Respond with this exact JSON structure:
       // Fallback to rule-based detection
       analysisResult = performRuleBasedAnalysis(vitals);
     }
-
-    console.log("Final analysis result:", analysisResult);
 
     return new Response(JSON.stringify(analysisResult), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

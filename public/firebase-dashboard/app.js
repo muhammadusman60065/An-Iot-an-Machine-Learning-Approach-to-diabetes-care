@@ -435,38 +435,85 @@ function updateVitalsDisplay(vitals) {
   checkAndCreateAlerts(vitals);
 }
 
+// Sanitize text to prevent XSS attacks
+function sanitizeText(str) {
+  if (str === null || str === undefined) return '';
+  const div = document.createElement('div');
+  div.textContent = String(str);
+  return div.innerHTML;
+}
+
 function updateAlertsDisplay(alerts) {
+  if (!elements.alertsContainer) return;
+  
+  // Clear existing content safely
+  elements.alertsContainer.innerHTML = '';
+  
   if (!alerts || Object.keys(alerts).length === 0) {
-    elements.alertsContainer.innerHTML = '<div class="no-alerts">✅ No active alerts - All vitals normal</div>';
+    const noAlertsDiv = document.createElement('div');
+    noAlertsDiv.className = 'no-alerts';
+    noAlertsDiv.textContent = '✅ No active alerts - All vitals normal';
+    elements.alertsContainer.appendChild(noAlertsDiv);
     return;
   }
 
-  let alertsHTML = '';
-  
   // Sort by timestamp (newest first)
   const sortedAlerts = Object.entries(alerts).sort((a, b) => {
     return (b[1].timestamp || 0) - (a[1].timestamp || 0);
   });
 
+  let hasActiveAlerts = false;
+
   sortedAlerts.forEach(([alertId, alert]) => {
     if (!alert.active && alert.active !== undefined) return; // Skip inactive alerts
+    hasActiveAlerts = true;
     
-    const alertType = alert.type || 'warning';
-    const icon = alertType === 'critical' ? '🚨' : (alertType === 'warning' ? '⚠️' : 'ℹ️');
+    const alertType = sanitizeText(alert.type) || 'warning';
+    const iconText = alertType === 'critical' ? '🚨' : (alertType === 'warning' ? '⚠️' : 'ℹ️');
     
-    alertsHTML += `
-      <div class="alert-item ${alertType}" data-alert-id="${alertId}">
-        <span class="alert-icon">${icon}</span>
-        <div class="alert-content">
-          <div class="alert-message">${alert.message || 'Alert'}</div>
-          <div class="alert-time">${formatTime(alert.timestamp)}</div>
-        </div>
-        <button class="alert-dismiss" onclick="dismissAlert('${alertId}')">×</button>
-      </div>
-    `;
+    // Create elements safely using DOM API (prevents XSS - no innerHTML with user data)
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert-item ${alertType}`;
+    alertDiv.setAttribute('data-alert-id', sanitizeText(alertId));
+    
+    const iconSpan = document.createElement('span');
+    iconSpan.className = 'alert-icon';
+    iconSpan.textContent = iconText;
+    
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'alert-content';
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'alert-message';
+    messageDiv.textContent = alert.message || 'Alert'; // Safe - textContent escapes HTML
+    
+    const timeDiv = document.createElement('div');
+    timeDiv.className = 'alert-time';
+    timeDiv.textContent = formatTime(alert.timestamp);
+    
+    contentDiv.appendChild(messageDiv);
+    contentDiv.appendChild(timeDiv);
+    
+    const dismissBtn = document.createElement('button');
+    dismissBtn.className = 'alert-dismiss';
+    dismissBtn.textContent = '×';
+    // Use addEventListener instead of onclick attribute to prevent injection
+    const safeAlertId = alertId;
+    dismissBtn.addEventListener('click', () => dismissAlert(safeAlertId));
+    
+    alertDiv.appendChild(iconSpan);
+    alertDiv.appendChild(contentDiv);
+    alertDiv.appendChild(dismissBtn);
+    
+    elements.alertsContainer.appendChild(alertDiv);
   });
 
-  elements.alertsContainer.innerHTML = alertsHTML || '<div class="no-alerts">✅ No active alerts</div>';
+  if (!hasActiveAlerts) {
+    const noAlertsDiv = document.createElement('div');
+    noAlertsDiv.className = 'no-alerts';
+    noAlertsDiv.textContent = '✅ No active alerts';
+    elements.alertsContainer.appendChild(noAlertsDiv);
+  }
 }
 
 function updateMLDisplay(ml) {

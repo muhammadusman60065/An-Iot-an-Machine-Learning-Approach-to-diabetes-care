@@ -2,206 +2,223 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { usePatientVitals } from '../hooks/usePatientVitals';
-import { LogOut, Wifi, WifiOff, AlertTriangle, Loader2, Thermometer, Heart, Activity, Droplets, Signal } from 'lucide-react';
-
-interface VitalCardProps {
-  title: string;
-  value: number | string;
-  unit: string;
-  icon: React.ReactNode;
-  isNormal: boolean;
-  emoji: string;
-}
-
-const VitalCard: React.FC<VitalCardProps> = ({ title, value, unit, icon, isNormal, emoji }) => (
-  <div
-    className={`p-6 rounded-xl shadow-lg transition-all duration-300 hover:scale-105 ${
-      isNormal
-        ? 'bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200'
-        : 'bg-gradient-to-br from-red-50 to-red-100 border-2 border-red-300 animate-pulse'
-    }`}
-  >
-    <div className="flex items-center justify-between mb-3">
-      <span className="text-2xl">{emoji}</span>
-      <div className={`p-2 rounded-full ${isNormal ? 'bg-green-200' : 'bg-red-200'}`}>
-        {icon}
-      </div>
-    </div>
-    <h3 className="text-sm font-medium text-gray-600 mb-1">{title}</h3>
-    <div className="flex items-baseline gap-1">
-      <span className={`text-3xl font-bold ${isNormal ? 'text-green-700' : 'text-red-700'}`}>
-        {value}
-      </span>
-      <span className="text-sm text-gray-500">{unit}</span>
-    </div>
-    <div className={`mt-2 text-xs font-medium ${isNormal ? 'text-green-600' : 'text-red-600'}`}>
-      {isNormal ? '✓ Normal' : '⚠ Abnormal'}
-    </div>
-  </div>
-);
-
-const LoadingSkeleton: React.FC = () => (
-  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-    {[...Array(6)].map((_, i) => (
-      <div key={i} className="p-6 rounded-xl bg-gray-100 animate-pulse">
-        <div className="h-8 w-8 bg-gray-200 rounded-full mb-4" />
-        <div className="h-4 w-24 bg-gray-200 rounded mb-2" />
-        <div className="h-8 w-16 bg-gray-200 rounded" />
-      </div>
-    ))}
-  </div>
-);
-
-const EmptyState: React.FC = () => (
-  <div className="text-center py-16">
-    <WifiOff className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-    <h3 className="text-xl font-semibold text-gray-700 mb-2">No Device Connected</h3>
-    <p className="text-gray-500">Please connect your monitoring device to see vital signs.</p>
-  </div>
-);
+import { 
+  Thermometer, 
+  Heart, 
+  Activity, 
+  Droplets, 
+  Wifi, 
+  WifiOff, 
+  AlertTriangle,
+  LogOut
+} from 'lucide-react';
 
 export const PatientDashboard: React.FC = () => {
-  const navigate = useNavigate();
   const { userProfile, logout } = useAuth();
   const { vitals, status, alerts, loading } = usePatientVitals(userProfile?.patientId);
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
     await logout();
     navigate('/login');
   };
 
-  // Check if values are in normal range
-  const isTemperatureNormal = vitals ? vitals.temperature >= 36 && vitals.temperature <= 37.5 : true;
-  const isHeartRateNormal = vitals ? vitals.heartRate >= 60 && vitals.heartRate <= 100 : true;
-  const isSpO2Normal = vitals ? vitals.spO2 >= 95 : true;
-  const isGlucoseNormal = vitals ? vitals.glucose >= 70 && vitals.glucose <= 140 : true;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your vitals...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!vitals) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="text-center bg-white rounded-xl shadow-lg p-8 max-w-md">
+          <WifiOff className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">No Device Connected</h2>
+          <p className="text-gray-600">Please check your ESP8266 hardware connection.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const isNormal = (value: number, min: number, max: number) => {
+    return value >= min && value <= max;
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
+      
       {/* Header */}
-      <header className="bg-gradient-to-r from-[#667eea] to-[#764ba2] text-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 py-6 flex items-center justify-between">
+      <header className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold">Welcome back, {userProfile?.profile?.name || 'Patient'}!</h1>
-            <p className="text-white/80 text-sm">Your health dashboard</p>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Welcome, {userProfile?.profile.name}
+            </h1>
+            <p className="text-sm text-gray-600">Real-time Health Monitoring</p>
           </div>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
           >
-            <LogOut className="h-4 w-4" />
+            <LogOut className="w-4 h-4" />
             Logout
           </button>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
         {/* Alert Banner */}
         {alerts?.active && (
-          <div className="mb-6 p-4 bg-red-100 border-l-4 border-red-500 rounded-r-lg flex items-center gap-3 animate-pulse">
-            <AlertTriangle className="h-6 w-6 text-red-600" />
-            <div>
-              <p className="font-semibold text-red-800">Health Alert</p>
-              <p className="text-red-700">{alerts.message}</p>
+          <div className="mb-6 bg-red-100 border-l-4 border-red-500 p-4 rounded-lg animate-pulse">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="w-6 h-6 text-red-600" />
+              <div>
+                <p className="font-semibold text-red-800">Alert: {alerts.severity}</p>
+                <p className="text-red-700">{alerts.message}</p>
+              </div>
             </div>
           </div>
         )}
 
-        {loading ? (
-          <LoadingSkeleton />
-        ) : !vitals ? (
-          <EmptyState />
-        ) : (
-          <>
-            {/* Vitals Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-              <VitalCard
-                title="Temperature"
-                value={vitals.temperature?.toFixed(1) || '--'}
-                unit="°C"
-                emoji="🌡️"
-                icon={<Thermometer className="h-5 w-5 text-gray-600" />}
-                isNormal={isTemperatureNormal}
-              />
-              <VitalCard
-                title="Heart Rate"
-                value={vitals.heartRate || '--'}
-                unit="BPM"
-                emoji="❤️"
-                icon={<Heart className="h-5 w-5 text-gray-600" />}
-                isNormal={isHeartRateNormal}
-              />
-              <VitalCard
-                title="Blood Oxygen (SpO2)"
-                value={vitals.spO2 || '--'}
-                unit="%"
-                emoji="🫁"
-                icon={<Activity className="h-5 w-5 text-gray-600" />}
-                isNormal={isSpO2Normal}
-              />
-              <VitalCard
-                title="Blood Glucose"
-                value={vitals.glucose || '--'}
-                unit="mg/dL"
-                emoji="🩸"
-                icon={<Droplets className="h-5 w-5 text-gray-600" />}
-                isNormal={isGlucoseNormal}
-              />
-              <VitalCard
-                title="Humidity"
-                value={vitals.humidity?.toFixed(1) || '--'}
-                unit="%"
-                emoji="💧"
-                icon={<Droplets className="h-5 w-5 text-gray-600" />}
-                isNormal={true}
-              />
+        {/* Vitals Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          
+          {/* Temperature */}
+          <VitalCard
+            icon={<Thermometer className="w-8 h-8" />}
+            title="Temperature"
+            value={vitals.temperature.toFixed(1)}
+            unit="°C"
+            normal={isNormal(vitals.temperature, 36, 37.5)}
+          />
 
-              {/* Device Status Card */}
-              <div
-                className={`p-6 rounded-xl shadow-lg ${
-                  status?.deviceConnected
-                    ? 'bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200'
-                    : 'bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-300'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-2xl">📡</span>
-                  <div className={`p-2 rounded-full ${status?.deviceConnected ? 'bg-blue-200' : 'bg-gray-200'}`}>
-                    {status?.deviceConnected ? (
-                      <Wifi className="h-5 w-5 text-blue-600" />
-                    ) : (
-                      <WifiOff className="h-5 w-5 text-gray-500" />
-                    )}
-                  </div>
-                </div>
-                <h3 className="text-sm font-medium text-gray-600 mb-1">Device Status</h3>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <div className={`h-2 w-2 rounded-full ${status?.deviceConnected ? 'bg-green-500' : 'bg-red-500'}`} />
-                    <span className="text-sm">{status?.deviceConnected ? 'Connected' : 'Disconnected'}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Signal className="h-3 w-3 text-gray-500" />
-                    <span className="text-xs text-gray-500">RSSI: {status?.rssi || '--'} dBm</span>
-                  </div>
-                  {status?.lastUpdate && (
-                    <p className="text-xs text-gray-400 mt-2">
-                      Last update: {new Date(status.lastUpdate).toLocaleTimeString()}
-                    </p>
-                  )}
-                </div>
-              </div>
+          {/* Heart Rate */}
+          <VitalCard
+            icon={<Heart className="w-8 h-8" />}
+            title="Heart Rate"
+            value={vitals.heartRate.toFixed(0)}
+            unit="BPM"
+            normal={isNormal(vitals.heartRate, 60, 100)}
+          />
+
+          {/* SpO2 */}
+          <VitalCard
+            icon={<Activity className="w-8 h-8" />}
+            title="Blood Oxygen"
+            value={vitals.spO2.toFixed(0)}
+            unit="%"
+            normal={vitals.spO2 >= 95}
+          />
+
+          {/* Glucose */}
+          <VitalCard
+            icon={<Droplets className="w-8 h-8 text-red-500" />}
+            title="Glucose"
+            value={vitals.glucose.toFixed(0)}
+            unit="mg/dL"
+            normal={isNormal(vitals.glucose, 70, 140)}
+          />
+
+          {/* Humidity */}
+          <VitalCard
+            icon={<Droplets className="w-8 h-8 text-blue-500" />}
+            title="Humidity"
+            value={vitals.humidity.toFixed(1)}
+            unit="%"
+            normal={true}
+          />
+
+          {/* Device Status */}
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-800">Device Status</h3>
+              {status?.deviceConnected ? (
+                <Wifi className="w-6 h-6 text-green-500" />
+              ) : (
+                <WifiOff className="w-6 h-6 text-red-500" />
+              )}
             </div>
-
-            {/* Timestamp */}
-            {vitals.timestamp && (
-              <div className="text-center text-sm text-gray-500">
-                Last reading: {new Date(vitals.timestamp).toLocaleString()}
-              </div>
-            )}
-          </>
-        )}
+            <div className="space-y-3 text-sm">
+              <StatusRow 
+                label="Connection" 
+                value={status?.deviceConnected ? 'Online' : 'Offline'}
+                status={status?.deviceConnected}
+              />
+              <StatusRow 
+                label="MAX30100" 
+                value={status?.max30100_online ? 'Active' : 'Inactive'}
+                status={status?.max30100_online}
+              />
+              <StatusRow 
+                label="Signal" 
+                value={`${status?.rssi || '--'} dBm`}
+                status={true}
+              />
+            </div>
+          </div>
+        </div>
       </main>
+    </div>
+  );
+};
+
+// Reusable Components
+interface VitalCardProps {
+  icon: React.ReactNode;
+  title: string;
+  value: string;
+  unit: string;
+  normal: boolean;
+}
+
+const VitalCard: React.FC<VitalCardProps> = ({ icon, title, value, unit, normal }) => {
+  return (
+    <div className={`bg-white rounded-xl shadow-lg p-6 transition-all hover:shadow-xl ${
+      !normal ? 'ring-2 ring-red-400' : ''
+    }`}>
+      <div className="flex items-center justify-between mb-4">
+        <div className={normal ? 'text-blue-600' : 'text-red-600'}>
+          {icon}
+        </div>
+        {!normal && (
+          <span className="text-xs font-semibold text-red-600 bg-red-100 px-2 py-1 rounded">
+            ⚠️ Abnormal
+          </span>
+        )}
+      </div>
+      <h3 className="text-gray-600 text-sm font-medium mb-2">{title}</h3>
+      <div className="flex items-baseline gap-2">
+        <span className={`text-4xl font-bold ${normal ? 'text-gray-900' : 'text-red-600'}`}>
+          {value}
+        </span>
+        <span className="text-lg text-gray-500">{unit}</span>
+      </div>
+    </div>
+  );
+};
+
+interface StatusRowProps {
+  label: string;
+  value: string;
+  status?: boolean;
+}
+
+const StatusRow: React.FC<StatusRowProps> = ({ label, value, status }) => {
+  return (
+    <div className="flex justify-between items-center">
+      <span className="text-gray-600">{label}:</span>
+      <span className={`font-medium ${
+        status ? 'text-green-600' : 'text-red-600'
+      }`}>
+        {value}
+      </span>
     </div>
   );
 };

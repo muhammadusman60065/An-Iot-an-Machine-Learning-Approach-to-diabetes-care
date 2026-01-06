@@ -2,8 +2,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
@@ -13,8 +13,40 @@ import PatientDashboard from "./pages/patient/PatientDashboard";
 import DoctorDashboard from "./pages/doctor/DoctorDashboard";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import NotFound from "./pages/NotFound";
+import { PatientDashboard as NewPatientDashboard } from "./pages/PatientDashboard";
+import { DoctorDashboard as NewDoctorDashboard } from "./pages/DoctorDashboard";
 
 const queryClient = new QueryClient();
+
+// Root redirect component
+const RootRedirect = () => {
+  const { userData, isLoading } = useAuth();
+  
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-muted flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  if (!userData) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  // Redirect based on role
+  switch (userData.role) {
+    case 'doctor':
+      return <Navigate to="/doctor" replace />;
+    case 'admin':
+      return <Navigate to="/admin/dashboard" replace />;
+    default:
+      return <Navigate to="/dashboard" replace />;
+  }
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -29,7 +61,19 @@ const App = () => (
             <Route path="/about" element={<About />} />
             <Route path="/iot-dashboard" element={<IoTDashboard />} />
             
-            {/* Patient Routes - Protected */}
+            {/* New simplified routes */}
+            <Route path="/dashboard" element={
+              <ProtectedRoute allowedRoles={["patient"]}>
+                <NewPatientDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/doctor" element={
+              <ProtectedRoute allowedRoles={["doctor"]}>
+                <NewDoctorDashboard />
+              </ProtectedRoute>
+            } />
+            
+            {/* Patient Routes - Protected (legacy) */}
             <Route path="/patient/dashboard" element={
               <ProtectedRoute allowedRoles={["patient"]}>
                 <PatientDashboard />
@@ -56,7 +100,7 @@ const App = () => (
               </ProtectedRoute>
             } />
             
-            {/* Doctor Routes - Protected */}
+            {/* Doctor Routes - Protected (legacy) */}
             <Route path="/doctor/dashboard" element={
               <ProtectedRoute allowedRoles={["doctor"]}>
                 <DoctorDashboard />

@@ -1,73 +1,102 @@
-# Welcome to your Lovable project
+How can I edit this code?
+There are multiple professional ways to edit and maintain this application, depending on your workflow preference.
 
-## Project info
+1. Edit Locally Using Your Own IDE (Recommended)
+You can work on the project locally using any modern IDE such as VS Code, WebStorm, or similar.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+Prerequisites
 
-## How can I edit this code?
+Node.js (v18 or later recommended)
 
-There are several ways of editing your application.
+npm (comes with Node.js)
 
-**Use Lovable**
+Git
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+Steps
 
-Changes made via Lovable will be committed automatically to this repo.
+Clone the repository using the project’s Git URL:
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
 git clone <YOUR_GIT_URL>
+Navigate to the project directory:
 
-# Step 2: Navigate to the project directory.
 cd <YOUR_PROJECT_NAME>
+Install all required dependencies:
 
-# Step 3: Install the necessary dependencies.
-npm i
+npm install
+Start the development server with hot reloading:
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
 npm run dev
-```
+Any changes you make locally can be committed and pushed back to GitHub, where they become part of the main codebase.
 
-**Edit a file directly in GitHub**
+2. Edit Directly on GitHub
+For quick changes or minor fixes, you can edit files directly in the GitHub web interface.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Steps
 
-**Use GitHub Codespaces**
+Navigate to the desired file in the repository.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Click the Edit (✏️) button.
 
-## What technologies are used for this project?
+Make your changes.
 
-This project is built with:
+Commit the changes with a clear commit message.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+This method is suitable for small updates or documentation edits.
 
-## How can I deploy this project?
+3. Use GitHub Codespaces
+GitHub Codespaces provides a cloud-based development environment without requiring local setup.
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+Steps
 
-## Can I connect a custom domain to my Lovable project?
+Open the repository on GitHub.
 
-Yes, you can!
+Click Code → Codespaces → New codespace.
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+Edit files directly in the browser-based IDE.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Commit and push your changes when finished.
+
+This is useful if you want a full development environment without installing dependencies locally.
+
+What technologies are used in this project?
+This project is built using the following modern web technologies:
+
+Vite – Fast build tool and development server
+
+React – Component-based frontend framework
+
+TypeScript – Type-safe JavaScript
+
+Tailwind CSS – Utility-first CSS framework
+
+shadcn/ui – Pre-built, customizable UI components
+
+How can I deploy this project?
+The project can be deployed using any modern hosting platform that supports Node.js and static builds, such as:
+
+Vercel
+
+Netlify
+
+Firebase Hosting
+
+GitHub Pages (with build step)
+
+Typical deployment steps
+
+Build the project:
+
+npm run build
+Deploy the generated output using your chosen hosting provider.
+
+Can I connect a custom domain?
+Yes. After deploying the project, you can connect a custom domain through your hosting provider’s dashboard by configuring DNS records (usually A or CNAME records).
+
+Summary
+The project is fully managed through GitHub
+
+Code can be edited locally, directly on GitHub, or via Codespaces
+
+Built with modern, industry-standard frontend technologies
+
+Deployment and domain configuration are hosting-provider independent

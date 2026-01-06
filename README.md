@@ -1,11 +1,11 @@
-How can I edit this code?
-There are multiple professional ways to edit and maintain this application, depending on your workflow preference.
+Editing & Maintaining the Application
+This project is developed and maintained using standard GitHub‑based workflows. You can edit, run, and deploy the application using any of the following professional methods.
 
+Editing the Code
 1. Edit Locally Using Your Own IDE (Recommended)
-You can work on the project locally using any modern IDE such as VS Code, WebStorm, or similar.
+You can work on the project locally using modern IDEs such as VS Code, WebStorm, or similar.
 
 Prerequisites
-
 Node.js (v18 or later recommended)
 
 npm (comes with Node.js)
@@ -13,38 +13,36 @@ npm (comes with Node.js)
 Git
 
 Steps
-
-Clone the repository using the project’s Git URL:
-
+# Clone the repository
 git clone <YOUR_GIT_URL>
-Navigate to the project directory:
 
+# Navigate to the project directory
 cd <YOUR_PROJECT_NAME>
-Install all required dependencies:
 
+# Install dependencies
 npm install
-Start the development server with hot reloading:
 
+# Start the development server with hot reload
 npm run dev
-Any changes you make locally can be committed and pushed back to GitHub, where they become part of the main codebase.
+All changes made locally can be committed and pushed to GitHub, ensuring version control and collaboration.
 
-2. Edit Directly on GitHub
-For quick changes or minor fixes, you can edit files directly in the GitHub web interface.
+2. Edit Files Directly on GitHub
+For quick fixes or documentation updates, files can be edited directly from GitHub.
 
 Steps
 
-Navigate to the desired file in the repository.
+Open the desired file in the repository.
 
-Click the Edit (✏️) button.
+Click the Edit (✏️) icon.
 
 Make your changes.
 
-Commit the changes with a clear commit message.
+Commit with a clear and descriptive message.
 
-This method is suitable for small updates or documentation edits.
+This approach is ideal for small or non‑critical changes.
 
 3. Use GitHub Codespaces
-GitHub Codespaces provides a cloud-based development environment without requiring local setup.
+GitHub Codespaces provides a cloud‑based development environment without local setup.
 
 Steps
 
@@ -52,27 +50,30 @@ Open the repository on GitHub.
 
 Click Code → Codespaces → New codespace.
 
-Edit files directly in the browser-based IDE.
+Edit files directly in the browser‑based editor.
 
-Commit and push your changes when finished.
+Commit and push changes when finished.
 
-This is useful if you want a full development environment without installing dependencies locally.
-
-What technologies are used in this project?
-This project is built using the following modern web technologies:
+Technologies Used
+This project is built using modern, production‑ready web technologies:
 
 Vite – Fast build tool and development server
 
-React – Component-based frontend framework
+React – Component‑based frontend framework
 
-TypeScript – Type-safe JavaScript
+TypeScript – Type‑safe JavaScript
 
-Tailwind CSS – Utility-first CSS framework
+Tailwind CSS – Utility‑first CSS framework
 
-shadcn/ui – Pre-built, customizable UI components
+shadcn/ui – Reusable and customizable UI components
 
-How can I deploy this project?
-The project can be deployed using any modern hosting platform that supports Node.js and static builds, such as:
+Deployment
+The application can be deployed on any platform that supports Node.js and static builds.
+
+Common Deployment Steps
+# Build the project
+npm run build
+Deploy the generated build using platforms such as:
 
 Vercel
 
@@ -80,23 +81,16 @@ Netlify
 
 Firebase Hosting
 
-GitHub Pages (with build step)
+GitHub Pages (with a build step)
 
-Typical deployment steps
-
-Build the project:
-
-npm run build
-Deploy the generated output using your chosen hosting provider.
-
-Can I connect a custom domain?
-Yes. After deploying the project, you can connect a custom domain through your hosting provider’s dashboard by configuring DNS records (usually A or CNAME records).
+Custom Domain Setup
+A custom domain can be connected through your hosting provider by configuring DNS records (A or CNAME records) in the provider’s dashboard.
 
 Summary
-The project is fully managed through GitHub
+Project is fully managed via GitHub
 
-Code can be edited locally, directly on GitHub, or via Codespaces
+Multiple professional editing workflows supported
 
-Built with modern, industry-standard frontend technologies
+Built with modern frontend technologies
 
-Deployment and domain configuration are hosting-provider independent
+Deployment is flexible and platform‑independent

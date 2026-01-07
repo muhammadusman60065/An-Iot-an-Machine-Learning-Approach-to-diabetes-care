@@ -3,9 +3,9 @@ import { useLocation } from 'react-router-dom';
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import DiabetesChatbot from "@/components/chatbot/DiabetesChatbot";
-import DoctorOverview from "@/components/doctor/DoctorOverview";
-import DoctorPatients from "@/components/doctor/DoctorPatients";
-import DoctorAlerts from "@/components/doctor/DoctorAlerts";
+import DoctorOverviewSection from "@/components/doctor/DoctorOverviewSection";
+import DoctorPatientsSection from "@/components/doctor/DoctorPatientsSection";
+import DoctorAlertsSection from "@/components/doctor/DoctorAlertsSection";
 import DoctorAppointments from "@/components/doctor/DoctorAppointments";
 import DoctorSettings from "@/components/doctor/DoctorSettings";
 
@@ -18,10 +18,10 @@ const DoctorDashboard = () => {
     const path = location.pathname;
     
     if (path.includes('/doctor/patients')) {
-      return <DoctorPatients userData={userData} />;
+      return <DoctorPatientsSection userData={userData} />;
     }
     if (path.includes('/doctor/alerts')) {
-      return <DoctorAlerts userData={userData} />;
+      return <DoctorAlertsSection userData={userData} />;
     }
     if (path.includes('/doctor/appointments')) {
       return <DoctorAppointments userData={userData} />;
@@ -30,12 +30,12 @@ const DoctorDashboard = () => {
       return <DoctorSettings userData={userData} />;
     }
     // Default: dashboard overview
-    return <DoctorOverview userData={userData} />;
+    return <DoctorOverviewSection userData={userData} />;
   };
 
   return (
     <DashboardLayout role="doctor">
-      <div className="min-h-screen p-6">
+      <div className="min-h-screen pb-8">
         <div className="max-w-7xl mx-auto">
           {renderSection()}
         </div>

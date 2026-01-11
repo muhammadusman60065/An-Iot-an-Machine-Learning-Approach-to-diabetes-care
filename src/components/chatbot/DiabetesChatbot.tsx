@@ -122,15 +122,14 @@ const DiabetesChatbot = () => {
     // Try to get session token if logged in, but don't require it
     const { data: { session } } = await supabase.auth.getSession();
     
+    const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
-      "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      "apikey": anonKey,
+      // Always send Authorization header - use session token if logged in, otherwise anon key
+      "Authorization": `Bearer ${session?.access_token || anonKey}`,
     };
-    
-    // Add auth header if user is logged in
-    if (session?.access_token) {
-      headers["Authorization"] = `Bearer ${session.access_token}`;
-    }
 
     const resp = await fetch(CHAT_URL, {
       method: "POST",

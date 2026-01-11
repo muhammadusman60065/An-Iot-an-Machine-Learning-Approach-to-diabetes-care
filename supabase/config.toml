@@ -4,4 +4,4 @@ project_id = "gjxlvsawrpxfqsgadlfr"
 verify_jwt = true
 
 [functions.diabetes-chat]
-verify_jwt = true
+verify_jwt = false

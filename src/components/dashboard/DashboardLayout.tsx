@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import Logo from "@/components/Logo";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import ThemeToggle from "@/components/ThemeToggle";
 
 type UserRole = "patient" | "doctor" | "admin";
 
@@ -112,12 +113,15 @@ const DashboardLayout = ({ children, role }: DashboardLayoutProps) => {
       {/* Mobile Header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-card border-b border-border h-16 flex items-center justify-between px-4">
         <Logo size="sm" />
-        <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="p-2 text-muted-foreground hover:text-foreground"
-        >
-          {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="p-2 text-muted-foreground hover:text-foreground"
+          >
+            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
       </header>
 
       {/* Mobile Menu Overlay */}
@@ -164,6 +168,10 @@ const DashboardLayout = ({ children, role }: DashboardLayoutProps) => {
           </nav>
 
           <div className="p-4 border-t border-border space-y-2">
+            <div className="flex items-center justify-between px-2 py-2">
+              <span className="text-sm text-muted-foreground">Theme</span>
+              <ThemeToggle />
+            </div>
             <Button
               variant="ghost"
               className={`w-full justify-start gap-3 text-destructive hover:text-destructive hover:bg-destructive/10 ${

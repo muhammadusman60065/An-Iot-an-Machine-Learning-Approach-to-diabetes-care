@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -29,17 +28,17 @@ Guidelines:
 
 Remember: You are an educational resource, not a replacement for medical professionals.`;
 
-// Rate limiting: track requests per user
+// Rate limiting: track requests per user/IP
 const requestCounts = new Map<string, { count: number; resetTime: number }>();
-const RATE_LIMIT = 20; // requests per window
+const RATE_LIMIT = 30; // requests per window
 const RATE_WINDOW_MS = 60000; // 1 minute window
 
-function checkRateLimit(userId: string): boolean {
+function checkRateLimit(identifier: string): boolean {
   const now = Date.now();
-  const userLimit = requestCounts.get(userId);
+  const userLimit = requestCounts.get(identifier);
   
   if (!userLimit || now > userLimit.resetTime) {
-    requestCounts.set(userId, { count: 1, resetTime: now + RATE_WINDOW_MS });
+    requestCounts.set(identifier, { count: 1, resetTime: now + RATE_WINDOW_MS });
     return true;
   }
   
@@ -57,46 +56,33 @@ serve(async (req) => {
   }
 
   try {
-    // Authentication check
+    // Get user identifier - prefer auth but allow anonymous with a fallback identifier
+    let userId: string;
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      console.log("No authorization header provided");
-      return new Response(JSON.stringify({ error: "Authorization required" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Verify the user with Supabase
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
     
-    if (!supabaseUrl || !supabaseAnonKey) {
-      console.error("Supabase environment variables not configured");
-      throw new Error("Server configuration error");
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      // Try to extract user from token if provided, but don't require it
+      try {
+        // For authenticated users, we can extract user ID from the JWT
+        const token = authHeader.replace("Bearer ", "");
+        const payload = JSON.parse(atob(token.split(".")[1]));
+        userId = payload.sub || "anonymous";
+      } catch {
+        userId = "anonymous";
+      }
+    } else {
+      // For anonymous users, use IP-based or random identifier
+      const clientIp = req.headers.get("x-forwarded-for") || 
+                       req.headers.get("cf-connecting-ip") || 
+                       "anonymous";
+      userId = `anon_${clientIp}`;
     }
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: {
-        headers: { Authorization: authHeader },
-      },
-    });
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    if (authError || !user) {
-      console.log("Authentication failed:", authError?.message);
-      return new Response(JSON.stringify({ error: "Invalid or expired token" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    console.log("Authenticated user:", user.id);
+    console.log("Chat request from:", userId);
 
     // Rate limiting check
-    if (!checkRateLimit(user.id)) {
-      console.log("Rate limit exceeded for user:", user.id);
+    if (!checkRateLimit(userId)) {
+      console.log("Rate limit exceeded for:", userId);
       return new Response(JSON.stringify({ error: "Rate limit exceeded. Please wait before sending more messages." }), {
         status: 429,
         headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" },
@@ -129,7 +115,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           ...limitedMessages,

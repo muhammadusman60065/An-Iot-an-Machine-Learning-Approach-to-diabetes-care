@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePatientDashboard } from "@/hooks/usePatientDashboard";
@@ -12,9 +13,52 @@ import DiabetesChatbot from "@/components/chatbot/DiabetesChatbot";
 import { Loader2, User, Activity, Bell, Calendar, FileText, Settings } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+// Map routes to tab values
+const routeToTab: Record<string, string> = {
+  '/patient/dashboard': 'overview',
+  '/patient/health-data': 'overview',
+  '/patient/alerts': 'alerts',
+  '/patient/reports': 'reports',
+  '/patient/settings': 'settings',
+};
+
+// Map tab values to routes
+const tabToRoute: Record<string, string> = {
+  'overview': '/patient/dashboard',
+  'alerts': '/patient/alerts',
+  'appointments': '/patient/dashboard',
+  'reports': '/patient/reports',
+  'settings': '/patient/settings',
+};
+
 const PatientDashboard = () => {
   const { userData } = useAuth();
-  const [activeTab, setActiveTab] = useState("overview");
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  // Derive initial tab from current route
+  const getTabFromRoute = (pathname: string): string => {
+    return routeToTab[pathname] || 'overview';
+  };
+  
+  const [activeTab, setActiveTab] = useState(() => getTabFromRoute(location.pathname));
+
+  // Sync tab state when route changes (e.g., from sidebar clicks)
+  useEffect(() => {
+    const newTab = getTabFromRoute(location.pathname);
+    if (newTab !== activeTab) {
+      setActiveTab(newTab);
+    }
+  }, [location.pathname]);
+
+  // Handle tab changes - update URL to match
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    const targetRoute = tabToRoute[value];
+    if (targetRoute && location.pathname !== targetRoute) {
+      navigate(targetRoute);
+    }
+  };
   
   // Get patientId from userData
   const patientId = userData?.patientId || 
@@ -73,7 +117,7 @@ const PatientDashboard = () => {
         </header>
 
         {/* Navigation Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="w-full justify-start bg-card border border-border/50 p-1 h-auto flex-wrap gap-1">
             <TabsTrigger value="overview" className="flex items-center gap-2 data-[state=active]:gradient-bg data-[state=active]:text-white">
               <Activity className="w-4 h-4" />

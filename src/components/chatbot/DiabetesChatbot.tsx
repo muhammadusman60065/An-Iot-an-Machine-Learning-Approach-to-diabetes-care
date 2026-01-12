@@ -1,8 +1,9 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { MessageCircle, X, Send, Bot, User, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { motion, AnimatePresence } from "framer-motion";
 
 type Message = {
   id?: string;
@@ -38,10 +39,10 @@ const DiabetesChatbot = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const userId = useRef(getUserId());
 
-  const WELCOME_MESSAGE: Message = {
-    role: "assistant",
+  const WELCOME_MESSAGE: Message = useRef({
+    role: "assistant" as const,
     content: "Hello! I'm DiaCare AI, your diabetes health assistant. Ask me anything about diabetes management, blood sugar, diet, or lifestyle tips. How can I help you today?",
-  };
+  }).current;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -51,14 +52,7 @@ const DiabetesChatbot = () => {
     scrollToBottom();
   }, [messages]);
 
-  // Load chat history when component mounts or chat opens
-  useEffect(() => {
-    if (isOpen && messages.length === 0) {
-      loadChatHistory();
-    }
-  }, [isOpen]);
-
-  const loadChatHistory = async () => {
+  const loadChatHistory = useCallback(async () => {
     setIsLoadingHistory(true);
     try {
       const { data, error } = await supabase
@@ -78,15 +72,28 @@ const DiabetesChatbot = () => {
         }));
         setMessages(loadedMessages);
       } else {
-        setMessages([WELCOME_MESSAGE]);
+        setMessages([{
+          role: "assistant" as const,
+          content: "Hello! I'm DiaCare AI, your diabetes health assistant. Ask me anything about diabetes management, blood sugar, diet, or lifestyle tips. How can I help you today?",
+        }]);
       }
     } catch (error) {
       console.error("Error loading chat history:", error);
-      setMessages([WELCOME_MESSAGE]);
+      setMessages([{
+        role: "assistant" as const,
+        content: "Hello! I'm DiaCare AI, your diabetes health assistant. Ask me anything about diabetes management, blood sugar, diet, or lifestyle tips. How can I help you today?",
+      }]);
     } finally {
       setIsLoadingHistory(false);
     }
-  };
+  }, []);
+
+  // Load chat history when component mounts or chat opens
+  useEffect(() => {
+    if (isOpen && messages.length === 0) {
+      loadChatHistory();
+    }
+  }, [isOpen, messages.length, loadChatHistory]);
 
   const saveMessage = async (message: Message) => {
     try {
@@ -209,8 +216,9 @@ const DiabetesChatbot = () => {
 
     try {
       // Filter out welcome message for API call
+      const welcomeContent = "Hello! I'm DiaCare AI, your diabetes health assistant. Ask me anything about diabetes management, blood sugar, diet, or lifestyle tips. How can I help you today?";
       const apiMessages = updatedMessages.filter(
-        (m) => m.content !== WELCOME_MESSAGE.content
+        (m) => m.content !== welcomeContent
       );
       const assistantContent = await streamChat(apiMessages);
       
@@ -237,137 +245,254 @@ const DiabetesChatbot = () => {
   return (
     <>
       {/* Chat Toggle Button */}
-      <button
+      <motion.button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 gradient-bg rounded-full shadow-lg flex items-center justify-center text-white hover:scale-110 transition-transform duration-200"
+        className="fixed bottom-6 right-6 z-50 w-14 h-14 gradient-bg rounded-full shadow-lg flex items-center justify-center text-white"
         style={{ boxShadow: "var(--shadow-primary)" }}
         aria-label="Toggle chat"
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
+        animate={isOpen ? { rotate: 180 } : { rotate: 0 }}
+        transition={{ duration: 0.3 }}
       >
-        {isOpen ? <X size={24} /> : <MessageCircle size={24} />}
-      </button>
+        <AnimatePresence mode="wait">
+          {isOpen ? (
+            <motion.div
+              key="close"
+              initial={{ rotate: -90, opacity: 0 }}
+              animate={{ rotate: 0, opacity: 1 }}
+              exit={{ rotate: 90, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <X size={24} />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="open"
+              initial={{ rotate: 90, opacity: 0 }}
+              animate={{ rotate: 0, opacity: 1 }}
+              exit={{ rotate: -90, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <MessageCircle size={24} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.button>
 
       {/* Chat Window */}
-      {isOpen && (
-        <div className="fixed bottom-24 right-6 z-50 w-[380px] h-[550px] bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-scale-in">
-          {/* Header */}
-          <div className="gradient-bg px-4 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                <Bot size={22} className="text-white" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-white">DiaCare AI</h3>
-                <p className="text-xs text-white/80">Diabetes Health Assistant</p>
-              </div>
-            </div>
-            <button
-              onClick={clearHistory}
-              className="p-2 hover:bg-white/10 rounded-full transition-colors"
-              title="Clear chat history"
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            className="fixed bottom-24 right-6 z-50 w-[380px] h-[550px] bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+            initial={{ opacity: 0, scale: 0.8, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 20 }}
+            transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 30 }}
+          >
+            {/* Header */}
+            <motion.div
+              className="gradient-bg px-4 py-4 flex items-center justify-between"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
             >
-              <Trash2 size={16} className="text-white/80" />
-            </button>
-          </div>
-
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-background">
-            {isLoadingHistory ? (
-              <div className="flex items-center justify-center h-full">
-                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+              <div className="flex items-center gap-3">
+                <motion.div
+                  className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center"
+                  animate={{
+                    scale: [1, 1.1, 1],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                >
+                  <Bot size={22} className="text-white" />
+                </motion.div>
+                <div>
+                  <h3 className="font-semibold text-white">DiaCare AI</h3>
+                  <p className="text-xs text-white/80">Diabetes Health Assistant</p>
+                </div>
               </div>
-            ) : (
-              <>
-                {messages.map((message, index) => (
-                  <div
-                    key={message.id || index}
-                    className={`flex gap-2 ${message.role === "user" ? "justify-end" : "justify-start"}`}
+              <motion.button
+                onClick={clearHistory}
+                className="p-2 hover:bg-white/10 rounded-full transition-colors"
+                title="Clear chat history"
+                whileHover={{ scale: 1.1, rotate: 90 }}
+                whileTap={{ scale: 0.9 }}
+                transition={{ duration: 0.2 }}
+              >
+                <Trash2 size={16} className="text-white/80" />
+              </motion.button>
+            </motion.div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-background">
+              {isLoadingHistory ? (
+                <motion.div
+                  className="flex items-center justify-center h-full"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                   >
-                    {message.role === "assistant" && (
+                    <Loader2 className="w-6 h-6 text-primary" />
+                  </motion.div>
+                </motion.div>
+              ) : (
+                <>
+                  {messages.map((message, index) => (
+                    <motion.div
+                      key={message.id || index}
+                      className={`flex gap-2 ${message.role === "user" ? "justify-end" : "justify-start"}`}
+                      initial={{ opacity: 0, y: 20, x: message.role === "user" ? 20 : -20 }}
+                      animate={{ opacity: 1, y: 0, x: 0 }}
+                      transition={{ delay: index * 0.05, duration: 0.3 }}
+                    >
+                      {message.role === "assistant" && (
+                        <motion.div
+                          className="w-8 h-8 gradient-bg rounded-full flex items-center justify-center flex-shrink-0"
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ delay: index * 0.05 + 0.1, type: "spring", stiffness: 200 }}
+                        >
+                          <Bot size={14} className="text-white" />
+                        </motion.div>
+                      )}
+                      <motion.div
+                        className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                          message.role === "user"
+                            ? "gradient-bg text-white rounded-br-md"
+                            : "bg-muted text-foreground rounded-bl-md"
+                        }`}
+                        whileHover={{ scale: 1.02 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        {message.content}
+                      </motion.div>
+                      {message.role === "user" && (
+                        <motion.div
+                          className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center flex-shrink-0"
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ delay: index * 0.05 + 0.1, type: "spring", stiffness: 200 }}
+                        >
+                          <User size={14} className="text-secondary-foreground" />
+                        </motion.div>
+                      )}
+                    </motion.div>
+                  ))}
+                  {isLoading && messages[messages.length - 1]?.role === "user" && (
+                    <motion.div
+                      className="flex gap-2 justify-start"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
                       <div className="w-8 h-8 gradient-bg rounded-full flex items-center justify-center flex-shrink-0">
                         <Bot size={14} className="text-white" />
                       </div>
-                    )}
-                    <div
-                      className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
-                        message.role === "user"
-                          ? "gradient-bg text-white rounded-br-md"
-                          : "bg-muted text-foreground rounded-bl-md"
-                      }`}
-                    >
-                      {message.content}
-                    </div>
-                    {message.role === "user" && (
-                      <div className="w-8 h-8 bg-secondary rounded-full flex items-center justify-center flex-shrink-0">
-                        <User size={14} className="text-secondary-foreground" />
+                      <div className="bg-muted px-4 py-3 rounded-2xl rounded-bl-md">
+                        <div className="flex gap-1">
+                          {[0, 150, 300].map((delay, idx) => (
+                            <motion.span
+                              key={idx}
+                              className="w-2 h-2 bg-primary/60 rounded-full"
+                              animate={{
+                                y: [0, -8, 0],
+                              }}
+                              transition={{
+                                duration: 0.6,
+                                repeat: Infinity,
+                                delay: delay / 1000,
+                                ease: "easeInOut",
+                              }}
+                            />
+                          ))}
+                        </div>
                       </div>
-                    )}
-                  </div>
-                ))}
-                {isLoading && messages[messages.length - 1]?.role === "user" && (
-                  <div className="flex gap-2 justify-start">
-                    <div className="w-8 h-8 gradient-bg rounded-full flex items-center justify-center flex-shrink-0">
-                      <Bot size={14} className="text-white" />
-                    </div>
-                    <div className="bg-muted px-4 py-3 rounded-2xl rounded-bl-md">
-                      <div className="flex gap-1">
-                        <span className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                        <span className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                        <span className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
-                      </div>
-                    </div>
-                  </div>
-                )}
-                <div ref={messagesEndRef} />
-              </>
-            )}
-          </div>
+                    </motion.div>
+                  )}
+                  <div ref={messagesEndRef} />
+                </>
+              )}
+            </div>
 
-          {/* Quick Questions */}
-          {messages.length <= 1 && !isLoadingHistory && (
-            <div className="px-4 pb-3 border-t border-border bg-card">
-              <p className="text-xs text-muted-foreground my-2 font-medium">Quick questions:</p>
-              <div className="flex flex-wrap gap-1.5">
-                {QUICK_QUESTIONS.map((question, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleSend(question)}
-                    disabled={isLoading}
-                    className="text-xs px-3 py-1.5 bg-muted hover:bg-primary/10 text-foreground hover:text-primary rounded-full transition-colors font-medium"
+            {/* Quick Questions */}
+            <AnimatePresence>
+              {messages.length <= 1 && !isLoadingHistory && (
+                <motion.div
+                  className="px-4 pb-3 border-t border-border bg-card"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <p className="text-xs text-muted-foreground my-2 font-medium">Quick questions:</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {QUICK_QUESTIONS.map((question, idx) => (
+                      <motion.button
+                        key={idx}
+                        onClick={() => handleSend(question)}
+                        disabled={isLoading}
+                        className="text-xs px-3 py-1.5 bg-muted hover:bg-primary/10 text-foreground hover:text-primary rounded-full transition-colors font-medium"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: idx * 0.05, duration: 0.2 }}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        {question}
+                      </motion.button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Input */}
+            <motion.div
+              className="p-4 border-t border-border bg-card"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  placeholder="Ask about diabetes..."
+                  className="flex-1 px-4 py-2.5 bg-muted rounded-full text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  disabled={isLoading}
+                />
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Button
+                    onClick={() => handleSend()}
+                    disabled={!input.trim() || isLoading}
+                    size="icon"
+                    className="rounded-full gradient-bg hover:opacity-90"
                   >
-                    {question}
-                  </button>
-                ))}
+                    <Send size={18} />
+                  </Button>
+                </motion.div>
               </div>
-            </div>
-          )}
-
-          {/* Input */}
-          <div className="p-4 border-t border-border bg-card">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyPress}
-                placeholder="Ask about diabetes..."
-                className="flex-1 px-4 py-2.5 bg-muted rounded-full text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                disabled={isLoading}
-              />
-              <Button
-                onClick={() => handleSend()}
-                disabled={!input.trim() || isLoading}
-                size="icon"
-                className="rounded-full gradient-bg hover:opacity-90"
-              >
-                <Send size={18} />
-              </Button>
-            </div>
-            <p className="text-[10px] text-muted-foreground text-center mt-2">
-              Powered by AI • Not medical advice
-            </p>
-          </div>
-        </div>
-      )}
+              <p className="text-[10px] text-muted-foreground text-center mt-2">
+                Powered by AI • Not medical advice
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 };

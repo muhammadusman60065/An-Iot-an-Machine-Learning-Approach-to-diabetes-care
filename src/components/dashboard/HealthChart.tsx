@@ -1,4 +1,5 @@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
+import { motion } from "framer-motion";
 
 interface DataPoint {
   time: string;
@@ -26,7 +27,7 @@ const HealthChart = ({
   maxValue,
   normalRange,
 }: HealthChartProps) => {
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number }>; label?: string }) => {
     if (active && payload && payload.length) {
       const value = payload[0].value;
       const isNormal = normalRange
@@ -34,7 +35,12 @@ const HealthChart = ({
         : true;
 
       return (
-        <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
+        <motion.div
+          className="bg-card border border-border rounded-lg p-3 shadow-lg"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.2 }}
+        >
           <p className="text-sm text-muted-foreground">{label}</p>
           <p className={`text-lg font-bold ${isNormal ? "text-foreground" : "text-warning"}`}>
             {value} {unit}
@@ -44,24 +50,40 @@ const HealthChart = ({
               Normal: {normalRange.min} - {normalRange.max} {unit}
             </p>
           )}
-        </div>
+        </motion.div>
       );
     }
     return null;
   };
 
   return (
-    <div className="bg-card rounded-2xl p-6 shadow-card">
-      <div className="flex items-center justify-between mb-6">
+    <motion.div
+      className="bg-card rounded-2xl p-6 shadow-card"
+      initial={{ opacity: 0, y: 20, scale: 0.9 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      whileHover={{ y: -5, scale: 1.02 }}
+      transition={{ duration: 0.3, type: "spring", stiffness: 100, damping: 15 }}
+    >
+      <motion.div
+        className="flex items-center justify-between mb-6"
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+      >
         <h3 className="font-heading font-semibold text-foreground">{title}</h3>
         {normalRange && (
           <div className="text-xs text-muted-foreground">
             Normal: {normalRange.min} - {normalRange.max} {unit}
           </div>
         )}
-      </div>
+      </motion.div>
 
-      <div className="h-64">
+      <motion.div
+        className="h-64"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2 }}
+      >
         <ResponsiveContainer width="100%" height="100%">
           {showArea ? (
             <AreaChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
@@ -116,8 +138,8 @@ const HealthChart = ({
             </LineChart>
           )}
         </ResponsiveContainer>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };
 

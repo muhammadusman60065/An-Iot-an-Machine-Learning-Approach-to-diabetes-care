@@ -29,6 +29,7 @@ import { useAdminData } from "@/hooks/useAdminData";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { UserRole } from "@/lib/firebase";
+import { motion, AnimatePresence } from "framer-motion";
 
 const AdminDashboard = () => {
   const { userData } = useAuth();
@@ -129,11 +130,39 @@ const AdminDashboard = () => {
     );
   }
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+    },
+  };
+
   return (
     <DashboardLayout role="admin">
-      <div className="space-y-8">
+      <motion.div 
+        className="space-y-8"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
         {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <motion.div 
+          className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
           <div>
             <h1 className="font-heading text-2xl lg:text-3xl font-bold text-foreground">
               Admin Control Panel
@@ -143,19 +172,40 @@ const AdminDashboard = () => {
             </p>
           </div>
           <div className="flex gap-3">
-            <Button variant="outline" onClick={refreshData}>
-              <RefreshCw size={18} className="mr-2" />
-              Refresh
-            </Button>
-            <Button>
-              <TrendingUp size={18} className="mr-2" />
-              System Report
-            </Button>
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Button variant="outline" onClick={refreshData}>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  style={{ display: "inline-block" }}
+                >
+                  <RefreshCw size={18} className="mr-2" />
+                </motion.div>
+                Refresh
+              </Button>
+            </motion.div>
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Button>
+                <TrendingUp size={18} className="mr-2" />
+                System Report
+              </Button>
+            </motion.div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <motion.div 
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
           <MetricCard 
             title="Total Users" 
             value={allUsers.length} 
@@ -177,17 +227,24 @@ const AdminDashboard = () => {
             icon={Activity} 
             status="normal" 
           />
-          <MetricCard 
-            title="Critical Alerts" 
-            value={criticalAlerts} 
-            unit="unresolved" 
-            icon={AlertTriangle} 
-            status={criticalAlerts > 0 ? "danger" : "normal"} 
-          />
-        </div>
+          <motion.div variants={itemVariants}>
+            <MetricCard 
+              title="Critical Alerts" 
+              value={criticalAlerts} 
+              unit="unresolved" 
+              icon={AlertTriangle} 
+              status={criticalAlerts > 0 ? "danger" : "normal"} 
+            />
+          </motion.div>
+        </motion.div>
 
         {/* Main Content Tabs */}
-        <Tabs defaultValue="users" className="w-full">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <Tabs defaultValue="users" className="w-full">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="users">
               Users ({allUsers.length})
@@ -680,7 +737,8 @@ const AdminDashboard = () => {
             </div>
           </TabsContent>
         </Tabs>
-      </div>
+        </motion.div>
+      </motion.div>
     </DashboardLayout>
   );
 };

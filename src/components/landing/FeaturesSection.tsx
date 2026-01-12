@@ -3,6 +3,7 @@ import {
   FileText, Calendar, Settings, MessageSquare, 
   Phone, Heart, Zap, Download
 } from "lucide-react";
+import { motion } from "framer-motion";
 
 const features = [
   {
@@ -84,45 +85,169 @@ const FeaturesSection = () => {
     destructive: "group-hover:border-destructive/30",
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: {
+      opacity: 1,
+      y: 0,
+    },
+  };
+
+  const cardVariants = {
+    hidden: { opacity: 0, y: 50, scale: 0.9 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+    },
+  };
+
   return (
-    <section id="features" className="py-24 bg-gradient-to-b from-card/50 to-background">
+    <section id="features" className="py-24 bg-gradient-to-b from-card/50 to-background overflow-hidden">
       <div className="container">
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-full text-primary text-sm font-medium mb-6">
-            <Zap size={16} />
+        <motion.div 
+          className="text-center max-w-3xl mx-auto mb-16"
+          initial={{ opacity: 0, y: -30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6 }}
+        >
+          <motion.div 
+            className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-full text-primary text-sm font-medium mb-6"
+            whileHover={{ scale: 1.05, y: -2 }}
+            animate={{ 
+              boxShadow: [
+                "0 0 0px rgba(102, 126, 234, 0)",
+                "0 0 20px rgba(102, 126, 234, 0.3)",
+                "0 0 0px rgba(102, 126, 234, 0)",
+              ],
+            }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            <motion.div
+              animate={{ rotate: [0, 10, -10, 0] }}
+              transition={{ duration: 2, repeat: Infinity, repeatDelay: 2 }}
+            >
+              <Zap size={16} />
+            </motion.div>
             <span>Platform Features</span>
-          </div>
-          <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-6">
-            Complete <span className="gradient-text">Health Management</span> Suite
-          </h2>
-          <p className="text-muted-foreground text-lg">
+          </motion.div>
+          <motion.h2 
+            className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-6"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+          >
+            Complete <motion.span 
+              className="gradient-text inline-block"
+              animate={{
+                backgroundPosition: ["0%", "100%", "0%"],
+              }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                ease: "linear",
+              }}
+              style={{
+                backgroundSize: "200% auto",
+              }}
+            >
+              Health Management
+            </motion.span> Suite
+          </motion.h2>
+          <motion.p 
+            className="text-muted-foreground text-lg"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
             DiaCare provides everything you need for comprehensive diabetes care—from real-time monitoring 
             to intelligent insights, reports, and seamless care coordination.
-          </p>
-        </div>
+          </motion.p>
+        </motion.div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <motion.div 
+          className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-50px" }}
+          variants={containerVariants}
+        >
           {features.map((feature, index) => {
             const Icon = feature.icon;
             return (
-              <div
+              <motion.div
                 key={feature.title}
-                className={`group bg-card rounded-2xl p-6 shadow-card border border-border/50 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 animate-fade-in ${borderColors[feature.color]}`}
-                style={{ animationDelay: `${index * 0.05}s` }}
+                className={`group bg-card rounded-2xl p-6 shadow-card border border-border/50 hover:shadow-xl transition-all duration-300 cursor-pointer relative overflow-hidden ${borderColors[feature.color]}`}
+                variants={cardVariants}
+                whileHover={{ 
+                  y: -10,
+                  scale: 1.02,
+                  transition: { duration: 0.2 }
+                }}
+                whileTap={{ scale: 0.98 }}
               >
-                <div className={`w-14 h-14 ${bgColors[feature.color]} rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300`}>
-                  <Icon className={`w-7 h-7 ${textColors[feature.color]}`} />
+                {/* Hover gradient overlay */}
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                  <div className={`w-full h-full bg-gradient-to-br ${
+                    feature.color === 'primary' ? 'from-primary/5 to-transparent' :
+                    feature.color === 'info' ? 'from-info/5 to-transparent' :
+                    feature.color === 'warning' ? 'from-warning/5 to-transparent' :
+                    feature.color === 'success' ? 'from-success/5 to-transparent' :
+                    'from-destructive/5 to-transparent'
+                  }`} />
                 </div>
-                <h3 className="font-heading text-xl font-semibold text-foreground mb-3">
+                
+                <motion.div 
+                  className={`w-14 h-14 ${bgColors[feature.color]} rounded-xl flex items-center justify-center mb-5 relative z-10`}
+                  whileHover={{ 
+                    scale: 1.15,
+                    rotate: [0, -10, 10, 0],
+                  }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <motion.div
+                    animate={{ 
+                      scale: [1, 1.1, 1],
+                    }}
+                    transition={{ 
+                      duration: 2,
+                      repeat: Infinity,
+                      delay: index * 0.2,
+                    }}
+                  >
+                    <Icon className={`w-7 h-7 ${textColors[feature.color]}`} />
+                  </motion.div>
+                </motion.div>
+                
+                <h3 className="font-heading text-xl font-semibold text-foreground mb-3 relative z-10">
                   {feature.title}
                 </h3>
-                <p className="text-muted-foreground leading-relaxed">
+                <p className="text-muted-foreground leading-relaxed relative z-10">
                   {feature.description}
                 </p>
-              </div>
+
+                {/* Shine effect on hover */}
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"
+                  initial={false}
+                />
+              </motion.div>
             );
           })}
-        </div>
+        </motion.div>
       </div>
     </section>
   );

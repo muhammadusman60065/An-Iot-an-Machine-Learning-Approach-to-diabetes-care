@@ -1,4 +1,5 @@
 import { LucideIcon, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { motion } from "framer-motion";
 
 interface MetricCardProps {
   title: string;
@@ -54,38 +55,74 @@ const MetricCard = ({
   const TrendIcon = trend ? trendIcons[trend] : null;
 
   return (
-    <div className="metric-card bg-card">
+    <motion.div
+      className="metric-card bg-card"
+      initial={{ opacity: 0, y: 20, scale: 0.9 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      whileHover={{ y: -5, scale: 1.02 }}
+      transition={{ duration: 0.3, type: "spring", stiffness: 100, damping: 15 }}
+    >
       <div className="flex items-start justify-between mb-4">
-        <div className={`w-12 h-12 ${statusColors[status].bg} rounded-xl flex items-center justify-center`}>
+        <motion.div
+          className={`w-12 h-12 ${statusColors[status].bg} rounded-xl flex items-center justify-center`}
+          whileHover={{ scale: 1.1, rotate: 5 }}
+          transition={{ duration: 0.2 }}
+        >
           <Icon className={`w-6 h-6 ${statusColors[status].icon}`} />
-        </div>
+        </motion.div>
         {trend && trendValue && TrendIcon && (
-          <div className={`flex items-center gap-1 ${trendColors[trend]} text-sm font-medium`}>
+          <motion.div
+            className={`flex items-center gap-1 ${trendColors[trend]} text-sm font-medium`}
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+          >
             <TrendIcon size={16} />
             <span>{trendValue}</span>
-          </div>
+          </motion.div>
         )}
       </div>
 
       <div className="space-y-1">
         <p className="text-sm text-muted-foreground">{title}</p>
-        <div className="flex items-baseline gap-2">
+        <motion.div
+          className="flex items-baseline gap-2"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.1 }}
+        >
           <span className="text-3xl font-bold font-heading text-foreground">{value}</span>
           <span className="text-sm text-muted-foreground">{unit}</span>
-        </div>
+        </motion.div>
       </div>
 
       {lastUpdated && (
-        <p className="text-xs text-muted-foreground mt-4">
+        <motion.p
+          className="text-xs text-muted-foreground mt-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+        >
           Last updated: {lastUpdated}
-        </p>
+        </motion.p>
       )}
 
       {/* Status indicator */}
       <div className="absolute top-4 right-4">
-        <div className={`w-2 h-2 rounded-full ${status === 'normal' ? 'bg-success' : status === 'warning' ? 'bg-warning' : 'bg-danger'} animate-pulse`} />
+        <motion.div
+          className={`w-2 h-2 rounded-full ${status === 'normal' ? 'bg-success' : status === 'warning' ? 'bg-warning' : 'bg-danger'}`}
+          animate={{
+            scale: [1, 1.3, 1],
+            opacity: [1, 0.7, 1],
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
       </div>
-    </div>
+    </motion.div>
   );
 };
 

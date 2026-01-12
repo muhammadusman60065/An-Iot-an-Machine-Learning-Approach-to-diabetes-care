@@ -2,6 +2,7 @@ import React from 'react';
 import { Thermometer, Heart, Wind, Droplets, Activity, Wifi, WifiOff } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Vitals, DeviceStatus } from '@/types';
+import { motion } from 'framer-motion';
 
 interface VitalsSectionProps {
   vitals: Vitals | null;
@@ -33,32 +34,64 @@ const VitalCard: React.FC<VitalCardProps> = ({ icon, title, value, unit, status,
   };
 
   return (
-    <Card className={`metric-card border ${statusStyles[status]}`}>
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className={`p-3 rounded-xl ${color}`}>
-            {icon}
+    <motion.div
+      initial={{ opacity: 0, y: 20, scale: 0.9 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      whileHover={{ y: -5, scale: 1.02 }}
+      transition={{ duration: 0.3, type: "spring", stiffness: 100, damping: 15 }}
+    >
+      <Card className={`metric-card border ${statusStyles[status]}`}>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <motion.div 
+              className={`p-3 rounded-xl ${color}`}
+              whileHover={{ scale: 1.1, rotate: 5 }}
+              transition={{ duration: 0.2 }}
+            >
+              {icon}
+            </motion.div>
+            {status !== 'normal' && (
+              <motion.span 
+                className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                  status === 'danger' ? 'bg-destructive/10 text-destructive' : 'bg-warning/10 text-warning'
+                }`}
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 200 }}
+              >
+                {status === 'danger' ? '⚠️ Critical' : '⚡ Warning'}
+              </motion.span>
+            )}
+            {status === 'normal' && (
+              <motion.div 
+                className="w-3 h-3 rounded-full bg-success"
+                animate={{ 
+                  scale: [1, 1.3, 1],
+                  opacity: [1, 0.7, 1],
+                }}
+                transition={{ 
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
+            )}
           </div>
-          {status !== 'normal' && (
-            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-              status === 'danger' ? 'bg-destructive/10 text-destructive' : 'bg-warning/10 text-warning'
-            }`}>
-              {status === 'danger' ? '⚠️ Critical' : '⚡ Warning'}
+          <p className="text-sm font-medium text-muted-foreground mb-1">{title}</p>
+          <motion.div 
+            className="flex items-baseline gap-2"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.1 }}
+          >
+            <span className={`text-4xl font-bold ${valueStyles[status]}`}>
+              {typeof value === 'number' ? value.toFixed(1) : '--'}
             </span>
-          )}
-          {status === 'normal' && (
-            <div className="w-3 h-3 rounded-full bg-success animate-pulse" />
-          )}
-        </div>
-        <p className="text-sm font-medium text-muted-foreground mb-1">{title}</p>
-        <div className="flex items-baseline gap-2">
-          <span className={`text-4xl font-bold ${valueStyles[status]}`}>
-            {typeof value === 'number' ? value.toFixed(1) : '--'}
-          </span>
-          <span className="text-lg text-muted-foreground">{unit}</span>
-        </div>
-      </CardContent>
-    </Card>
+            <span className="text-lg text-muted-foreground">{unit}</span>
+          </motion.div>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 };
 
@@ -71,27 +104,80 @@ const getVitalStatus = (value: number | undefined, min: number, max: number, cri
 };
 
 export const VitalsSection: React.FC<VitalsSectionProps> = ({ vitals, status, isConnected, lastUpdated }) => {
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  };
+
   if (!vitals) {
     return (
-      <div className="bg-card rounded-xl p-8 text-center">
-        <WifiOff className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+      <motion.div 
+        className="bg-card rounded-xl p-8 text-center"
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        <motion.div
+          animate={{ 
+            scale: [1, 1.1, 1],
+            rotate: [0, -5, 5, 0],
+          }}
+          transition={{ 
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        >
+          <WifiOff className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+        </motion.div>
         <h3 className="text-lg font-semibold text-foreground mb-2">No Device Connected</h3>
         <p className="text-muted-foreground">Please check your IoT device connection</p>
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <section className="space-y-4">
-      <div className="flex items-center justify-between">
+    <motion.section 
+      className="space-y-4"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <motion.div 
+        className="flex items-center justify-between"
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+      >
         <div>
           <h2 className="text-xl font-bold text-foreground">Real-Time Vitals</h2>
           <p className="text-sm text-muted-foreground">Live data from your monitoring device</p>
         </div>
-        <div className="flex items-center gap-2">
+        <motion.div 
+          className="flex items-center gap-2"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.2 }}
+        >
           {isConnected ? (
             <>
-              <Wifi className="w-5 h-5 text-success" />
+              <motion.div
+                animate={{ 
+                  scale: [1, 1.2, 1],
+                }}
+                transition={{ 
+                  duration: 1.5,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              >
+                <Wifi className="w-5 h-5 text-success" />
+              </motion.div>
               <span className="text-sm font-medium text-success">Live</span>
             </>
           ) : (
@@ -105,10 +191,15 @@ export const VitalsSection: React.FC<VitalsSectionProps> = ({ vitals, status, is
               {lastUpdated.toLocaleTimeString()}
             </span>
           )}
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+      <motion.div 
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
         <VitalCard
           icon={<Thermometer className="w-6 h-6 text-white" />}
           title="Temperature"
@@ -149,10 +240,15 @@ export const VitalsSection: React.FC<VitalsSectionProps> = ({ vitals, status, is
           status="normal"
           color="bg-gradient-to-br from-teal-500 to-green-500"
         />
-      </div>
+      </motion.div>
 
       {/* Device Status Bar */}
-      <div className="bg-muted/50 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4">
+      <motion.div 
+        className="bg-muted/50 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4, duration: 0.5 }}
+      >
         <div className="flex items-center gap-6 text-sm">
           <div className="flex items-center gap-2">
             <span className="text-muted-foreground">Device:</span>
@@ -178,8 +274,8 @@ export const VitalsSection: React.FC<VitalsSectionProps> = ({ vitals, status, is
             {vitals.timestamp ? new Date(vitals.timestamp).toLocaleString() : 'Just now'}
           </span>
         </div>
-      </div>
-    </section>
+      </motion.div>
+    </motion.section>
   );
 };
 

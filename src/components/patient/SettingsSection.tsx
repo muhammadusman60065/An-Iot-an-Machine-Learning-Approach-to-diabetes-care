@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { motion } from 'framer-motion';
 
 interface SettingsSectionProps {
   patientName: string;
@@ -207,533 +208,636 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({ patientName, p
     }
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.05,
+      },
+    },
+  };
+
+  const cardVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        type: "spring",
+        stiffness: 100,
+        damping: 15,
+      },
+    },
+  };
+
   return (
-    <section className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Settings className="w-6 h-6 text-primary" />
+    <motion.section 
+      className="space-y-6"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <motion.div 
+        className="flex items-center gap-3"
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+      >
+        <motion.div
+          whileHover={{ rotate: 360 }}
+          transition={{ duration: 0.5 }}
+        >
+          <Settings className="w-6 h-6 text-primary" />
+        </motion.div>
         <div>
           <h2 className="text-xl font-bold text-foreground">Settings</h2>
           <p className="text-sm text-muted-foreground">Manage your account and preferences</p>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Personal Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <User className="w-5 h-5 text-primary" />
-            Personal Information
-          </CardTitle>
-          <CardDescription>Your basic profile information</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="firstName">First Name *</Label>
-              <Input
-                id="firstName"
-                value={profile.firstName}
-                onChange={(e) => updateProfile('firstName', e.target.value)}
-                placeholder="First name"
-                className={errors.firstName ? 'border-destructive' : ''}
-              />
-              {errors.firstName && <p className="text-sm text-destructive">{errors.firstName}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="lastName">Last Name *</Label>
-              <Input
-                id="lastName"
-                value={profile.lastName}
-                onChange={(e) => updateProfile('lastName', e.target.value)}
-                placeholder="Last name"
-                className={errors.lastName ? 'border-destructive' : ''}
-              />
-              {errors.lastName && <p className="text-sm text-destructive">{errors.lastName}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={profile.email}
-                disabled
-                className="bg-muted"
-              />
-              <p className="text-xs text-muted-foreground">Email cannot be changed</p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
-              <Input
-                id="phone"
-                type="tel"
-                value={profile.phone}
-                onChange={(e) => updateProfile('phone', e.target.value)}
-                placeholder="+1 (555) 000-0000"
-                className={errors.phone ? 'border-destructive' : ''}
-              />
-              {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="dateOfBirth">Date of Birth</Label>
-              <Input
-                id="dateOfBirth"
-                type="date"
-                value={profile.dateOfBirth}
-                onChange={(e) => updateProfile('dateOfBirth', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="age">Age</Label>
-              <Input
-                id="age"
-                type="number"
-                value={profile.age}
-                onChange={(e) => updateProfile('age', e.target.value)}
-                placeholder="Age"
-                min="0"
-                max="150"
-                className={errors.age ? 'border-destructive' : ''}
-              />
-              {errors.age && <p className="text-sm text-destructive">{errors.age}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="gender">Gender</Label>
-              <Select value={profile.gender} onValueChange={(value) => updateProfile('gender', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select gender" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="male">Male</SelectItem>
-                  <SelectItem value="female">Female</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                  <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="bloodType">Blood Type</Label>
-              <Select value={profile.bloodType} onValueChange={(value) => updateProfile('bloodType', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select blood type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="A+">A+</SelectItem>
-                  <SelectItem value="A-">A-</SelectItem>
-                  <SelectItem value="B+">B+</SelectItem>
-                  <SelectItem value="B-">B-</SelectItem>
-                  <SelectItem value="AB+">AB+</SelectItem>
-                  <SelectItem value="AB-">AB-</SelectItem>
-                  <SelectItem value="O+">O+</SelectItem>
-                  <SelectItem value="O-">O-</SelectItem>
-                  <SelectItem value="unknown">Unknown</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="space-y-6"
+      >
+        {/* Personal Information */}
+        <motion.div variants={cardVariants}>
+          <motion.div
+            whileHover={{ y: -5, scale: 1.01 }}
+            transition={{ duration: 0.2 }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <User className="w-5 h-5 text-primary" />
+                  Personal Information
+                </CardTitle>
+                <CardDescription>Your basic profile information</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName">First Name *</Label>
+                    <Input
+                      id="firstName"
+                      value={profile.firstName}
+                      onChange={(e) => updateProfile('firstName', e.target.value)}
+                      placeholder="First name"
+                      className={errors.firstName ? 'border-destructive' : ''}
+                    />
+                    {errors.firstName && <p className="text-sm text-destructive">{errors.firstName}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName">Last Name *</Label>
+                    <Input
+                      id="lastName"
+                      value={profile.lastName}
+                      onChange={(e) => updateProfile('lastName', e.target.value)}
+                      placeholder="Last name"
+                      className={errors.lastName ? 'border-destructive' : ''}
+                    />
+                    {errors.lastName && <p className="text-sm text-destructive">{errors.lastName}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={profile.email}
+                      disabled
+                      className="bg-muted"
+                    />
+                    <p className="text-xs text-muted-foreground">Email cannot be changed</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={profile.phone}
+                      onChange={(e) => updateProfile('phone', e.target.value)}
+                      placeholder="+1 (555) 000-0000"
+                      className={errors.phone ? 'border-destructive' : ''}
+                    />
+                    {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                    <Input
+                      id="dateOfBirth"
+                      type="date"
+                      value={profile.dateOfBirth}
+                      onChange={(e) => updateProfile('dateOfBirth', e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="age">Age</Label>
+                    <Input
+                      id="age"
+                      type="number"
+                      value={profile.age}
+                      onChange={(e) => updateProfile('age', e.target.value)}
+                      placeholder="Age"
+                      min="0"
+                      max="150"
+                      className={errors.age ? 'border-destructive' : ''}
+                    />
+                    {errors.age && <p className="text-sm text-destructive">{errors.age}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="gender">Gender</Label>
+                    <Select value={profile.gender} onValueChange={(value) => updateProfile('gender', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select gender" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="male">Male</SelectItem>
+                        <SelectItem value="female">Female</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                        <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="bloodType">Blood Type</Label>
+                    <Select value={profile.bloodType} onValueChange={(value) => updateProfile('bloodType', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select blood type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="A+">A+</SelectItem>
+                        <SelectItem value="A-">A-</SelectItem>
+                        <SelectItem value="B+">B+</SelectItem>
+                        <SelectItem value="B-">B-</SelectItem>
+                        <SelectItem value="AB+">AB+</SelectItem>
+                        <SelectItem value="AB-">AB-</SelectItem>
+                        <SelectItem value="O+">O+</SelectItem>
+                        <SelectItem value="O-">O-</SelectItem>
+                        <SelectItem value="unknown">Unknown</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </motion.div>
 
-      {/* Physical Measurements */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Ruler className="w-5 h-5 text-primary" />
-            Physical Measurements
-          </CardTitle>
-          <CardDescription>Your height and weight information</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="height">Height (cm)</Label>
-              <Input
-                id="height"
-                type="number"
-                value={profile.height}
-                onChange={(e) => updateProfile('height', e.target.value)}
-                placeholder="175"
-                min="0"
-                className={errors.height ? 'border-destructive' : ''}
-              />
-              {errors.height && <p className="text-sm text-destructive">{errors.height}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="weight">Weight (kg)</Label>
-              <Input
-                id="weight"
-                type="number"
-                value={profile.weight}
-                onChange={(e) => updateProfile('weight', e.target.value)}
-                placeholder="70"
-                min="0"
-                className={errors.weight ? 'border-destructive' : ''}
-              />
-              {errors.weight && <p className="text-sm text-destructive">{errors.weight}</p>}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Physical Measurements */}
+        <motion.div variants={cardVariants}>
+          <motion.div
+            whileHover={{ y: -5, scale: 1.01 }}
+            transition={{ duration: 0.2 }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Ruler className="w-5 h-5 text-primary" />
+                  Physical Measurements
+                </CardTitle>
+                <CardDescription>Your height and weight information</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="height">Height (cm)</Label>
+                    <Input
+                      id="height"
+                      type="number"
+                      value={profile.height}
+                      onChange={(e) => updateProfile('height', e.target.value)}
+                      placeholder="175"
+                      min="0"
+                      className={errors.height ? 'border-destructive' : ''}
+                    />
+                    {errors.height && <p className="text-sm text-destructive">{errors.height}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="weight">Weight (kg)</Label>
+                    <Input
+                      id="weight"
+                      type="number"
+                      value={profile.weight}
+                      onChange={(e) => updateProfile('weight', e.target.value)}
+                      placeholder="70"
+                      min="0"
+                      className={errors.weight ? 'border-destructive' : ''}
+                    />
+                    {errors.weight && <p className="text-sm text-destructive">{errors.weight}</p>}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </motion.div>
 
-      {/* Address */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <MapPin className="w-5 h-5 text-primary" />
-            Address
-          </CardTitle>
-          <CardDescription>Your home address (optional)</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="address">Street Address</Label>
-            <Input
-              id="address"
-              value={profile.address}
-              onChange={(e) => updateProfile('address', e.target.value)}
-              placeholder="123 Main Street"
-            />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="city">City</Label>
-              <Input
-                id="city"
-                value={profile.city}
-                onChange={(e) => updateProfile('city', e.target.value)}
-                placeholder="City"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="state">State</Label>
-              <Input
-                id="state"
-                value={profile.state}
-                onChange={(e) => updateProfile('state', e.target.value)}
-                placeholder="State"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="zipCode">ZIP Code</Label>
-              <Input
-                id="zipCode"
-                value={profile.zipCode}
-                onChange={(e) => updateProfile('zipCode', e.target.value)}
-                placeholder="12345"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Address */}
+        <motion.div variants={cardVariants}>
+          <motion.div
+            whileHover={{ y: -5, scale: 1.01 }}
+            transition={{ duration: 0.2 }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <MapPin className="w-5 h-5 text-primary" />
+                  Address
+                </CardTitle>
+                <CardDescription>Your home address (optional)</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="address">Street Address</Label>
+                  <Input
+                    id="address"
+                    value={profile.address}
+                    onChange={(e) => updateProfile('address', e.target.value)}
+                    placeholder="123 Main Street"
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="city">City</Label>
+                    <Input
+                      id="city"
+                      value={profile.city}
+                      onChange={(e) => updateProfile('city', e.target.value)}
+                      placeholder="City"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="state">State</Label>
+                    <Input
+                      id="state"
+                      value={profile.state}
+                      onChange={(e) => updateProfile('state', e.target.value)}
+                      placeholder="State"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="zipCode">ZIP Code</Label>
+                    <Input
+                      id="zipCode"
+                      value={profile.zipCode}
+                      onChange={(e) => updateProfile('zipCode', e.target.value)}
+                      placeholder="12345"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </motion.div>
 
-      {/* Emergency Contact */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Users className="w-5 h-5 text-primary" />
-            Emergency Contact
-          </CardTitle>
-          <CardDescription>Person to contact in case of emergency</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="emergencyContactName">Contact Name</Label>
-              <Input
-                id="emergencyContactName"
-                value={profile.emergencyContactName}
-                onChange={(e) => updateProfile('emergencyContactName', e.target.value)}
-                placeholder="Emergency contact name"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="emergencyContactPhone">Contact Phone</Label>
-              <Input
-                id="emergencyContactPhone"
-                type="tel"
-                value={profile.emergencyContactPhone}
-                onChange={(e) => updateProfile('emergencyContactPhone', e.target.value)}
-                placeholder="+1 (555) 000-0000"
-                className={errors.emergencyContactPhone ? 'border-destructive' : ''}
-              />
-              {errors.emergencyContactPhone && <p className="text-sm text-destructive">{errors.emergencyContactPhone}</p>}
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="emergencyContactRelationship">Relationship</Label>
-              <Select 
-                value={profile.emergencyContactRelationship} 
-                onValueChange={(value) => updateProfile('emergencyContactRelationship', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select relationship" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="spouse">Spouse</SelectItem>
-                  <SelectItem value="parent">Parent</SelectItem>
-                  <SelectItem value="child">Child</SelectItem>
-                  <SelectItem value="sibling">Sibling</SelectItem>
-                  <SelectItem value="friend">Friend</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Emergency Contact */}
+        <motion.div variants={cardVariants}>
+          <motion.div
+            whileHover={{ y: -5, scale: 1.01 }}
+            transition={{ duration: 0.2 }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Users className="w-5 h-5 text-primary" />
+                  Emergency Contact
+                </CardTitle>
+                <CardDescription>Person to contact in case of emergency</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="emergencyContactName">Contact Name</Label>
+                    <Input
+                      id="emergencyContactName"
+                      value={profile.emergencyContactName}
+                      onChange={(e) => updateProfile('emergencyContactName', e.target.value)}
+                      placeholder="Emergency contact name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="emergencyContactPhone">Contact Phone</Label>
+                    <Input
+                      id="emergencyContactPhone"
+                      type="tel"
+                      value={profile.emergencyContactPhone}
+                      onChange={(e) => updateProfile('emergencyContactPhone', e.target.value)}
+                      placeholder="+1 (555) 000-0000"
+                      className={errors.emergencyContactPhone ? 'border-destructive' : ''}
+                    />
+                    {errors.emergencyContactPhone && <p className="text-sm text-destructive">{errors.emergencyContactPhone}</p>}
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="emergencyContactRelationship">Relationship</Label>
+                    <Select 
+                      value={profile.emergencyContactRelationship} 
+                      onValueChange={(value) => updateProfile('emergencyContactRelationship', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select relationship" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="spouse">Spouse</SelectItem>
+                        <SelectItem value="parent">Parent</SelectItem>
+                        <SelectItem value="child">Child</SelectItem>
+                        <SelectItem value="sibling">Sibling</SelectItem>
+                        <SelectItem value="friend">Friend</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </motion.div>
 
-      {/* Medical Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Heart className="w-5 h-5 text-primary" />
-            Medical Information
-          </CardTitle>
-          <CardDescription>Your health conditions and medications</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="medicalConditions">Medical Conditions</Label>
-            <Textarea
-              id="medicalConditions"
-              value={profile.medicalConditions}
-              onChange={(e) => updateProfile('medicalConditions', e.target.value)}
-              placeholder="List any medical conditions (e.g., Type 2 Diabetes, Hypertension)"
-              rows={3}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="allergies">Allergies</Label>
-            <Textarea
-              id="allergies"
-              value={profile.allergies}
-              onChange={(e) => updateProfile('allergies', e.target.value)}
-              placeholder="List any allergies (e.g., Penicillin, Peanuts)"
-              rows={2}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="currentMedications">Current Medications</Label>
-            <Textarea
-              id="currentMedications"
-              value={profile.currentMedications}
-              onChange={(e) => updateProfile('currentMedications', e.target.value)}
-              placeholder="List current medications and dosages"
-              rows={3}
-            />
-          </div>
-        </CardContent>
-      </Card>
+        {/* Medical Information */}
+        <motion.div variants={cardVariants}>
+          <motion.div
+            whileHover={{ y: -5, scale: 1.01 }}
+            transition={{ duration: 0.2 }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Heart className="w-5 h-5 text-primary" />
+                  Medical Information
+                </CardTitle>
+                <CardDescription>Your health conditions and medications</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="medicalConditions">Medical Conditions</Label>
+                  <Textarea
+                    id="medicalConditions"
+                    value={profile.medicalConditions}
+                    onChange={(e) => updateProfile('medicalConditions', e.target.value)}
+                    placeholder="List any medical conditions (e.g., Type 2 Diabetes, Hypertension)"
+                    rows={3}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="allergies">Allergies</Label>
+                  <Textarea
+                    id="allergies"
+                    value={profile.allergies}
+                    onChange={(e) => updateProfile('allergies', e.target.value)}
+                    placeholder="List any allergies (e.g., Penicillin, Peanuts)"
+                    rows={2}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="currentMedications">Current Medications</Label>
+                  <Textarea
+                    id="currentMedications"
+                    value={profile.currentMedications}
+                    onChange={(e) => updateProfile('currentMedications', e.target.value)}
+                    placeholder="List current medications and dosages"
+                    rows={3}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </motion.div>
 
-      {/* Insurance Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Shield className="w-5 h-5 text-primary" />
-            Insurance Information
-          </CardTitle>
-          <CardDescription>Your health insurance details (optional)</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="insuranceProvider">Insurance Provider</Label>
-              <Input
-                id="insuranceProvider"
-                value={profile.insuranceProvider}
-                onChange={(e) => updateProfile('insuranceProvider', e.target.value)}
-                placeholder="Insurance company name"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="insurancePolicyNumber">Policy Number</Label>
-              <Input
-                id="insurancePolicyNumber"
-                value={profile.insurancePolicyNumber}
-                onChange={(e) => updateProfile('insurancePolicyNumber', e.target.value)}
-                placeholder="Policy number"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Insurance Information */}
+        <motion.div variants={cardVariants}>
+          <motion.div
+            whileHover={{ y: -5, scale: 1.01 }}
+            transition={{ duration: 0.2 }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Shield className="w-5 h-5 text-primary" />
+                  Insurance Information
+                </CardTitle>
+                <CardDescription>Your health insurance details (optional)</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="insuranceProvider">Insurance Provider</Label>
+                    <Input
+                      id="insuranceProvider"
+                      value={profile.insuranceProvider}
+                      onChange={(e) => updateProfile('insuranceProvider', e.target.value)}
+                      placeholder="Insurance company name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="insurancePolicyNumber">Policy Number</Label>
+                    <Input
+                      id="insurancePolicyNumber"
+                      value={profile.insurancePolicyNumber}
+                      onChange={(e) => updateProfile('insurancePolicyNumber', e.target.value)}
+                      placeholder="Policy number"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </motion.div>
 
-      {/* Notification Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Bell className="w-5 h-5 text-primary" />
-            Notification Preferences
-          </CardTitle>
-          <CardDescription>Configure how you receive health alerts</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-foreground">Critical Health Alerts</p>
-              <p className="text-sm text-muted-foreground">Get notified immediately for critical conditions</p>
-            </div>
-            <Switch
-              checked={notifications.criticalAlerts}
-              onCheckedChange={(checked) => setNotifications({ ...notifications, criticalAlerts: checked })}
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-foreground">Daily Summary</p>
-              <p className="text-sm text-muted-foreground">Receive daily health report summary</p>
-            </div>
-            <Switch
-              checked={notifications.dailySummary}
-              onCheckedChange={(checked) => setNotifications({ ...notifications, dailySummary: checked })}
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-foreground">Appointment Reminders</p>
-              <p className="text-sm text-muted-foreground">Get reminded before scheduled appointments</p>
-            </div>
-            <Switch
-              checked={notifications.appointmentReminders}
-              onCheckedChange={(checked) => setNotifications({ ...notifications, appointmentReminders: checked })}
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-foreground">Medication Reminders</p>
-              <p className="text-sm text-muted-foreground">Reminders for medication schedules</p>
-            </div>
-            <Switch
-              checked={notifications.medicationReminders}
-              onCheckedChange={(checked) => setNotifications({ ...notifications, medicationReminders: checked })}
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-foreground">Email Notifications</p>
-              <p className="text-sm text-muted-foreground">Receive alerts via email</p>
-            </div>
-            <Switch
-              checked={notifications.emailNotifications}
-              onCheckedChange={(checked) => setNotifications({ ...notifications, emailNotifications: checked })}
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-foreground">Push Notifications</p>
-              <p className="text-sm text-muted-foreground">Browser push notifications for alerts</p>
-            </div>
-            <Switch
-              checked={notifications.pushNotifications}
-              onCheckedChange={(checked) => setNotifications({ ...notifications, pushNotifications: checked })}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Display Preferences */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Settings className="w-5 h-5 text-primary" />
-            Display Preferences
-          </CardTitle>
-          <CardDescription>Customize units for vitals display</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Glucose Unit</Label>
-              <div className="flex gap-2">
-                {['mg/dL', 'mmol/L'].map((unit) => (
-                  <button
-                    key={unit}
-                    onClick={() => setPreferences({ ...preferences, glucoseUnit: unit })}
-                    className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      preferences.glucoseUnit === unit
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                    }`}
-                  >
-                    {unit}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Temperature Unit</Label>
-              <div className="flex gap-2">
+        {/* Notification Settings */}
+        <motion.div variants={cardVariants}>
+          <motion.div
+            whileHover={{ y: -5, scale: 1.01 }}
+            transition={{ duration: 0.2 }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Bell className="w-5 h-5 text-primary" />
+                  Notification Preferences
+                </CardTitle>
+                <CardDescription>Configure how you receive health alerts</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
                 {[
-                  { value: 'celsius', label: '°C' },
-                  { value: 'fahrenheit', label: '°F' }
-                ].map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => setPreferences({ ...preferences, temperatureUnit: option.value })}
-                    className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      preferences.temperatureUnit === option.value
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                    }`}
+                  { key: 'criticalAlerts' as const, label: 'Critical Health Alerts', desc: 'Get notified immediately for critical conditions' },
+                  { key: 'dailySummary' as const, label: 'Daily Summary', desc: 'Receive daily health report summary' },
+                  { key: 'appointmentReminders' as const, label: 'Appointment Reminders', desc: 'Get reminded before scheduled appointments' },
+                  { key: 'medicationReminders' as const, label: 'Medication Reminders', desc: 'Reminders for medication schedules' },
+                  { key: 'emailNotifications' as const, label: 'Email Notifications', desc: 'Receive alerts via email' },
+                  { key: 'pushNotifications' as const, label: 'Push Notifications', desc: 'Browser push notifications for alerts' },
+                ].map((item, index) => (
+                  <motion.div
+                    key={item.key}
+                    className="flex items-center justify-between"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.05 }}
                   >
-                    {option.label}
-                  </button>
+                    <div>
+                      <p className="font-medium text-foreground">{item.label}</p>
+                      <p className="text-sm text-muted-foreground">{item.desc}</p>
+                    </div>
+                    <Switch
+                      checked={notifications[item.key]}
+                      onCheckedChange={(checked) => setNotifications({ ...notifications, [item.key]: checked })}
+                    />
+                  </motion.div>
                 ))}
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </motion.div>
 
-      {/* Security */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Shield className="w-5 h-5 text-primary" />
-            Security
-          </CardTitle>
-          <CardDescription>Manage your account security</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-            <div>
-              <p className="font-medium text-foreground">Change Password</p>
-              <p className="text-sm text-muted-foreground">Update your account password</p>
-            </div>
-            <Button variant="outline" size="sm">Change</Button>
-          </div>
-          <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-            <div>
-              <p className="font-medium text-foreground">Two-Factor Authentication</p>
-              <p className="text-sm text-muted-foreground">Add an extra layer of security</p>
-            </div>
-            <Button variant="outline" size="sm">Enable</Button>
-          </div>
-          <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-            <div>
-              <p className="font-medium text-foreground">Connected Devices</p>
-              <p className="text-sm text-muted-foreground">Manage IoT devices linked to your account</p>
-            </div>
-            <Button variant="outline" size="sm">View</Button>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Display Preferences */}
+        <motion.div variants={cardVariants}>
+          <motion.div
+            whileHover={{ y: -5, scale: 1.01 }}
+            transition={{ duration: 0.2 }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Settings className="w-5 h-5 text-primary" />
+                  Display Preferences
+                </CardTitle>
+                <CardDescription>Customize units for vitals display</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Glucose Unit</Label>
+                    <div className="flex gap-2">
+                      {['mg/dL', 'mmol/L'].map((unit) => (
+                        <motion.button
+                          key={unit}
+                          onClick={() => setPreferences({ ...preferences, glucoseUnit: unit })}
+                          className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                            preferences.glucoseUnit === unit
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                          }`}
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          {unit}
+                        </motion.button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Temperature Unit</Label>
+                    <div className="flex gap-2">
+                      {[
+                        { value: 'celsius', label: '°C' },
+                        { value: 'fahrenheit', label: '°F' }
+                      ].map((option) => (
+                        <motion.button
+                          key={option.value}
+                          onClick={() => setPreferences({ ...preferences, temperatureUnit: option.value })}
+                          className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                            preferences.temperatureUnit === option.value
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                          }`}
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          {option.label}
+                        </motion.button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </motion.div>
+
+        {/* Security */}
+        <motion.div variants={cardVariants}>
+          <motion.div
+            whileHover={{ y: -5, scale: 1.01 }}
+            transition={{ duration: 0.2 }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Shield className="w-5 h-5 text-primary" />
+                  Security
+                </CardTitle>
+                <CardDescription>Manage your account security</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {[
+                  { label: 'Change Password', desc: 'Update your account password', button: 'Change' },
+                  { label: 'Two-Factor Authentication', desc: 'Add an extra layer of security', button: 'Enable' },
+                  { label: 'Connected Devices', desc: 'Manage IoT devices linked to your account', button: 'View' },
+                ].map((item, index) => (
+                  <motion.div
+                    key={item.label}
+                    className="flex items-center justify-between p-4 bg-muted/50 rounded-lg"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    whileHover={{ scale: 1.02 }}
+                  >
+                    <div>
+                      <p className="font-medium text-foreground">{item.label}</p>
+                      <p className="text-sm text-muted-foreground">{item.desc}</p>
+                    </div>
+                    <motion.div
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <Button variant="outline" size="sm">{item.button}</Button>
+                    </motion.div>
+                  </motion.div>
+                ))}
+              </CardContent>
+            </Card>
+          </motion.div>
+        </motion.div>
+      </motion.div>
 
       {/* Save Button */}
-      <div className="flex justify-end">
-        <Button onClick={handleSaveProfile} disabled={isSaving} className="gap-2">
-          {isSaving ? (
-            <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-              Saving...
-            </>
-          ) : (
-            <>
-              <Save className="w-4 h-4" />
-              Save All Changes
-            </>
-          )}
-        </Button>
-      </div>
-    </section>
+      <motion.div 
+        className="flex justify-end"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+      >
+        <motion.div
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <Button onClick={handleSaveProfile} disabled={isSaving} className="gap-2 relative overflow-hidden group">
+            <motion.span
+              className="absolute inset-0 bg-white/20"
+              initial={{ x: "-100%" }}
+              whileHover={{ x: "100%" }}
+              transition={{ duration: 0.5 }}
+            />
+            <span className="relative flex items-center">
+              {isSaving ? (
+                <>
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    className="rounded-full h-4 w-4 border-b-2 border-white mr-2"
+                  />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Save All Changes
+                </>
+              )}
+            </span>
+          </Button>
+        </motion.div>
+      </motion.div>
+    </motion.section>
   );
 };
 

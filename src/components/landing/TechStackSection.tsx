@@ -1,4 +1,5 @@
 import { Cpu, Database, Cloud, Wifi, Code, Layers, Zap, Shield } from "lucide-react";
+import { motion } from "framer-motion";
 
 const frontendTech = [
   { name: "React 18", description: "Modern UI library" },
@@ -30,135 +31,255 @@ const mlTech = [
 ];
 
 const TechStackSection = () => {
+  const techCategories = [
+    { title: "Frontend", subtitle: "Web Application", icon: Code, color: "primary", tech: frontendTech },
+    { title: "Backend", subtitle: "Cloud Infrastructure", icon: Cloud, color: "info", tech: backendTech },
+    { title: "IoT Hardware", subtitle: "Sensors & Microcontroller", icon: Cpu, color: "success", tech: hardwareTech },
+    { title: "Machine Learning", subtitle: "Intelligent Analysis", icon: Zap, color: "warning", tech: mlTech },
+  ];
+
+  const bgColors: Record<string, string> = {
+    primary: "bg-primary/10",
+    info: "bg-info/10",
+    success: "bg-success/10",
+    warning: "bg-warning/10",
+  };
+
+  const textColors: Record<string, string> = {
+    primary: "text-primary",
+    info: "text-info",
+    success: "text-success",
+    warning: "text-warning",
+  };
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  };
+
+  const cardVariants = {
+    hidden: { opacity: 0, y: 50, scale: 0.9 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        type: "spring",
+        stiffness: 100,
+        damping: 15,
+      },
+    },
+  };
+
+  const techItemVariants = {
+    hidden: { opacity: 0, scale: 0.8 },
+    visible: {
+      opacity: 1,
+      scale: 1,
+      transition: {
+        type: "spring",
+        stiffness: 200,
+        damping: 15,
+      },
+    },
+  };
+
   return (
-    <section id="technology" className="py-24 bg-gradient-to-b from-card/50 to-background">
+    <section id="technology" className="py-24 bg-gradient-to-b from-card/50 to-background overflow-hidden">
       <div className="container">
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-warning/10 border border-warning/20 rounded-full text-warning text-sm font-medium mb-6">
-            <Layers size={16} />
+        <motion.div 
+          className="text-center max-w-3xl mx-auto mb-16"
+          initial={{ opacity: 0, y: -30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.8, ease: [0.43, 0.13, 0.23, 0.96] }}
+        >
+          <motion.div 
+            className="inline-flex items-center gap-2 px-4 py-2 bg-warning/10 border border-warning/20 rounded-full text-warning text-sm font-medium mb-6"
+            initial={{ opacity: 0, scale: 0.8 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            whileHover={{ scale: 1.05, y: -2 }}
+          >
+            <motion.div
+              animate={{ rotate: [0, 15, -15, 0] }}
+              transition={{ duration: 2, repeat: Infinity, repeatDelay: 2 }}
+            >
+              <Layers size={16} />
+            </motion.div>
             <span>Technology Stack</span>
-          </div>
-          <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-6">
-            Built with <span className="gradient-text">Modern Technology</span>
-          </h2>
-          <p className="text-muted-foreground text-lg">
+          </motion.div>
+          <motion.h2 
+            className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-6"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
+            Built with <motion.span 
+              className="gradient-text inline-block"
+              animate={{
+                backgroundPosition: ["0%", "100%", "0%"],
+              }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                ease: "linear",
+              }}
+              style={{
+                backgroundSize: "200% auto",
+              }}
+            >
+              Modern Technology
+            </motion.span>
+          </motion.h2>
+          <motion.p 
+            className="text-muted-foreground text-lg"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+          >
             DiaCare leverages cutting-edge technologies across frontend, backend, hardware, and machine learning 
             to deliver a robust, scalable healthcare monitoring solution.
-          </p>
-        </div>
+          </motion.p>
+        </motion.div>
 
-        <div className="grid md:grid-cols-2 gap-8">
-          {/* Frontend */}
-          <div className="bg-card rounded-2xl p-6 shadow-card border border-border/50 animate-fade-in">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
-                <Code className="w-6 h-6 text-primary" />
-              </div>
-              <div>
-                <h3 className="font-heading text-lg font-bold text-foreground">Frontend</h3>
-                <p className="text-sm text-muted-foreground">Web Application</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {frontendTech.map((tech) => (
-                <div key={tech.name} className="p-3 bg-accent/50 rounded-lg">
-                  <p className="font-medium text-foreground text-sm">{tech.name}</p>
-                  <p className="text-xs text-muted-foreground">{tech.description}</p>
-                </div>
-              ))}
-            </div>
-          </div>
+        <motion.div 
+          className="grid md:grid-cols-2 gap-8"
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-50px" }}
+        >
+          {techCategories.map((category, index) => {
+            const Icon = category.icon;
+            const isML = category.title === "Machine Learning";
+            return (
+              <motion.div
+                key={category.title}
+                className="bg-card rounded-2xl p-6 shadow-card border border-border/50 relative overflow-hidden group cursor-pointer"
+                variants={cardVariants}
+                whileHover={{ 
+                  y: -8,
+                  scale: 1.02,
+                  transition: { duration: 0.2 }
+                }}
+              >
+                {/* Hover gradient overlay */}
+                <motion.div
+                  className={`absolute inset-0 bg-gradient-to-br from-${category.color}/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
+                  initial={false}
+                />
 
-          {/* Backend */}
-          <div className="bg-card rounded-2xl p-6 shadow-card border border-border/50 animate-fade-in" style={{ animationDelay: "0.1s" }}>
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 bg-info/10 rounded-xl flex items-center justify-center">
-                <Cloud className="w-6 h-6 text-info" />
-              </div>
-              <div>
-                <h3 className="font-heading text-lg font-bold text-foreground">Backend</h3>
-                <p className="text-sm text-muted-foreground">Cloud Infrastructure</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {backendTech.map((tech) => (
-                <div key={tech.name} className="p-3 bg-accent/50 rounded-lg">
-                  <p className="font-medium text-foreground text-sm">{tech.name}</p>
-                  <p className="text-xs text-muted-foreground">{tech.description}</p>
+                <div className="flex items-center gap-3 mb-6 relative z-10">
+                  <motion.div 
+                    className={`w-12 h-12 ${bgColors[category.color]} rounded-xl flex items-center justify-center`}
+                    whileHover={{ 
+                      scale: 1.15,
+                      rotate: [0, -10, 10, 0],
+                    }}
+                    transition={{ duration: 0.3 }}
+                    animate={{ 
+                      boxShadow: [
+                        `0 0 0px rgba(0,0,0,0)`,
+                        `0 0 20px ${category.color === 'primary' ? 'rgba(102, 126, 234, 0.3)' : category.color === 'info' ? 'rgba(59, 130, 246, 0.3)' : category.color === 'success' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
+                        `0 0 0px rgba(0,0,0,0)`,
+                      ],
+                    }}
+                    transition={{ duration: 3, repeat: Infinity, delay: index * 0.5 }}
+                  >
+                    <Icon className={`w-6 h-6 ${textColors[category.color]}`} />
+                  </motion.div>
+                  <div>
+                    <h3 className="font-heading text-lg font-bold text-foreground">{category.title}</h3>
+                    <p className="text-sm text-muted-foreground">{category.subtitle}</p>
+                  </div>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Hardware */}
-          <div className="bg-card rounded-2xl p-6 shadow-card border border-border/50 animate-fade-in" style={{ animationDelay: "0.2s" }}>
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 bg-success/10 rounded-xl flex items-center justify-center">
-                <Cpu className="w-6 h-6 text-success" />
-              </div>
-              <div>
-                <h3 className="font-heading text-lg font-bold text-foreground">IoT Hardware</h3>
-                <p className="text-sm text-muted-foreground">Sensors & Microcontroller</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {hardwareTech.map((tech) => (
-                <div key={tech.name} className="p-3 bg-accent/50 rounded-lg">
-                  <p className="font-medium text-foreground text-sm">{tech.name}</p>
-                  <p className="text-xs text-muted-foreground">{tech.description}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* ML */}
-          <div className="bg-card rounded-2xl p-6 shadow-card border border-border/50 animate-fade-in" style={{ animationDelay: "0.3s" }}>
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 bg-warning/10 rounded-xl flex items-center justify-center">
-                <Zap className="w-6 h-6 text-warning" />
-              </div>
-              <div>
-                <h3 className="font-heading text-lg font-bold text-foreground">Machine Learning</h3>
-                <p className="text-sm text-muted-foreground">Intelligent Analysis</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-3">
-              {mlTech.map((tech) => (
-                <div key={tech.name} className="p-3 bg-accent/50 rounded-lg">
-                  <p className="font-medium text-foreground text-sm">{tech.name}</p>
-                  <p className="text-xs text-muted-foreground">{tech.description}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+                <motion.div 
+                  className={`grid ${isML ? 'grid-cols-1' : 'grid-cols-2'} gap-3 relative z-10`}
+                  variants={containerVariants}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true }}
+                >
+                  {category.tech.map((tech, techIndex) => (
+                    <motion.div
+                      key={tech.name}
+                      className="p-3 bg-accent/50 rounded-lg cursor-pointer"
+                      variants={techItemVariants}
+                      whileHover={{ 
+                        scale: 1.05,
+                        y: -2,
+                        backgroundColor: "hsl(var(--accent))",
+                      }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <p className="font-medium text-foreground text-sm">{tech.name}</p>
+                      <p className="text-xs text-muted-foreground">{tech.description}</p>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              </motion.div>
+            );
+          })}
+        </motion.div>
 
         {/* Architecture Summary */}
-        <div className="mt-12 p-6 bg-gradient-to-r from-primary/5 via-info/5 to-success/5 rounded-2xl border border-border/50">
-          <div className="grid md:grid-cols-3 gap-6 text-center">
-            <div>
-              <div className="w-12 h-12 gradient-bg rounded-xl flex items-center justify-center mx-auto mb-3">
-                <Wifi className="w-6 h-6 text-white" />
-              </div>
-              <h4 className="font-semibold text-foreground mb-1">IoT Layer</h4>
-              <p className="text-sm text-muted-foreground">ESP8266 collects sensor data and transmits via Wi-Fi</p>
-            </div>
-            <div>
-              <div className="w-12 h-12 gradient-bg rounded-xl flex items-center justify-center mx-auto mb-3">
-                <Database className="w-6 h-6 text-white" />
-              </div>
-              <h4 className="font-semibold text-foreground mb-1">Cloud Layer</h4>
-              <p className="text-sm text-muted-foreground">Firebase provides real-time sync and secure storage</p>
-            </div>
-            <div>
-              <div className="w-12 h-12 gradient-bg rounded-xl flex items-center justify-center mx-auto mb-3">
-                <Code className="w-6 h-6 text-white" />
-              </div>
-              <h4 className="font-semibold text-foreground mb-1">Application Layer</h4>
-              <p className="text-sm text-muted-foreground">React dashboard with ML-powered insights</p>
-            </div>
-          </div>
-        </div>
+        <motion.div 
+          className="mt-12 p-6 bg-gradient-to-r from-primary/5 via-info/5 to-success/5 rounded-2xl border border-border/50"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8, delay: 0.4 }}
+        >
+          <motion.div 
+            className="grid md:grid-cols-3 gap-6 text-center"
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+          >
+            {[
+              { icon: Wifi, title: "IoT Layer", desc: "ESP8266 collects sensor data and transmits via Wi-Fi" },
+              { icon: Database, title: "Cloud Layer", desc: "Firebase provides real-time sync and secure storage" },
+              { icon: Code, title: "Application Layer", desc: "React dashboard with ML-powered insights" },
+            ].map((layer, index) => {
+              const LayerIcon = layer.icon;
+              return (
+                <motion.div
+                  key={layer.title}
+                  variants={techItemVariants}
+                  whileHover={{ scale: 1.05, y: -5 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <motion.div 
+                    className="w-12 h-12 gradient-bg rounded-xl flex items-center justify-center mx-auto mb-3"
+                    animate={{ 
+                      rotate: [0, 5, -5, 0],
+                      scale: [1, 1.05, 1],
+                    }}
+                    transition={{ 
+                      duration: 3,
+                      repeat: Infinity,
+                      delay: index * 0.3,
+                    }}
+                  >
+                    <LayerIcon className="w-6 h-6 text-white" />
+                  </motion.div>
+                  <h4 className="font-semibold text-foreground mb-1">{layer.title}</h4>
+                  <p className="text-sm text-muted-foreground">{layer.desc}</p>
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        </motion.div>
       </div>
     </section>
   );

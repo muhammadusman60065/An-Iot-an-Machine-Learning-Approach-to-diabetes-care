@@ -1,6 +1,7 @@
 import { User, Stethoscope, Users, ShieldCheck, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 
 const roles = [
   {
@@ -53,40 +54,153 @@ const RolesSection = () => {
     success: "text-success",
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.15,
+      },
+    },
+  };
+
+  const cardVariants = {
+    hidden: { opacity: 0, y: 60, scale: 0.9 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        type: "spring",
+        stiffness: 100,
+        damping: 15,
+      },
+    },
+  };
+
+  const featureVariants = {
+    hidden: { opacity: 0, x: -20 },
+    visible: {
+      opacity: 1,
+      x: 0,
+      transition: {
+        staggerChildren: 0.05,
+      },
+    },
+  };
+
   return (
-    <section id="roles" className="py-24 bg-gradient-to-b from-background to-card/50">
+    <section id="roles" className="py-24 bg-gradient-to-b from-background to-card/50 overflow-hidden">
       <div className="container">
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-success/10 border border-success/20 rounded-full text-success text-sm font-medium mb-6">
-            <Users size={16} />
+        <motion.div 
+          className="text-center max-w-3xl mx-auto mb-16"
+          initial={{ opacity: 0, y: -30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.8, ease: [0.43, 0.13, 0.23, 0.96] }}
+        >
+          <motion.div 
+            className="inline-flex items-center gap-2 px-4 py-2 bg-success/10 border border-success/20 rounded-full text-success text-sm font-medium mb-6"
+            initial={{ opacity: 0, scale: 0.8 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            whileHover={{ scale: 1.05, y: -2 }}
+          >
+            <motion.div
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              <Users size={16} />
+            </motion.div>
             <span>Role-Based Access</span>
-          </div>
-          <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-6">
-            Tailored <span className="gradient-text">Dashboards</span> for Everyone
-          </h2>
-          <p className="text-muted-foreground text-lg">
+          </motion.div>
+          <motion.h2 
+            className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-6"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
+            Tailored <motion.span 
+              className="gradient-text inline-block"
+              animate={{
+                backgroundPosition: ["0%", "100%", "0%"],
+              }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                ease: "linear",
+              }}
+              style={{
+                backgroundSize: "200% auto",
+              }}
+            >
+              Dashboards
+            </motion.span> for Everyone
+          </motion.h2>
+          <motion.p 
+            className="text-muted-foreground text-lg"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+          >
             DiaCare provides specialized interfaces for each user role, ensuring everyone has access 
             to the features and information they need for optimal diabetes care.
-          </p>
-        </div>
+          </motion.p>
+        </motion.div>
 
-        <div className="grid md:grid-cols-2 gap-6">
+        <motion.div 
+          className="grid md:grid-cols-2 gap-6"
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-50px" }}
+        >
           {roles.map((role, index) => {
             const Icon = role.icon;
             return (
-              <div
+              <motion.div
                 key={role.title}
-                className="group bg-card rounded-2xl overflow-hidden shadow-card border border-border/50 hover:shadow-xl transition-all duration-300 animate-fade-in"
-                style={{ animationDelay: `${index * 0.1}s` }}
+                className="group bg-card rounded-2xl overflow-hidden shadow-card border border-border/50 hover:shadow-xl transition-all duration-300 relative"
+                variants={cardVariants}
+                whileHover={{ 
+                  y: -10,
+                  scale: 1.02,
+                  transition: { duration: 0.2 }
+                }}
               >
                 {/* Gradient Header */}
-                <div className={`h-2 bg-gradient-to-r ${role.gradient}`} />
+                <motion.div 
+                  className={`h-2 bg-gradient-to-r ${role.gradient}`}
+                  initial={{ scaleX: 0 }}
+                  whileInView={{ scaleX: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: index * 0.1 + 0.3 }}
+                  style={{ transformOrigin: "left" }}
+                />
                 
                 <div className="p-6">
                   <div className="flex items-start gap-4 mb-4">
-                    <div className={`w-14 h-14 ${bgColors[role.color]} rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300`}>
+                    <motion.div 
+                      className={`w-14 h-14 ${bgColors[role.color]} rounded-xl flex items-center justify-center flex-shrink-0 relative z-10`}
+                      whileHover={{ 
+                        scale: 1.15,
+                        rotate: [0, -10, 10, 0],
+                      }}
+                      transition={{ duration: 0.3 }}
+                      animate={{ 
+                        boxShadow: [
+                          `0 0 0px ${role.color === 'primary' ? 'rgba(102, 126, 234, 0)' : role.color === 'info' ? 'rgba(59, 130, 246, 0)' : role.color === 'success' ? 'rgba(16, 185, 129, 0)' : 'rgba(245, 158, 11, 0)'}`,
+                          `0 0 20px ${role.color === 'primary' ? 'rgba(102, 126, 234, 0.3)' : role.color === 'info' ? 'rgba(59, 130, 246, 0.3)' : role.color === 'success' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
+                          `0 0 0px ${role.color === 'primary' ? 'rgba(102, 126, 234, 0)' : role.color === 'info' ? 'rgba(59, 130, 246, 0)' : role.color === 'success' ? 'rgba(16, 185, 129, 0)' : 'rgba(245, 158, 11, 0)'}`,
+                        ],
+                      }}
+                      transition={{ duration: 3, repeat: Infinity, delay: index * 0.5 }}
+                    >
                       <Icon className={`w-7 h-7 ${textColors[role.color]}`} />
-                    </div>
+                    </motion.div>
                     <div>
                       <h3 className="font-heading text-xl font-bold text-foreground">
                         {role.title}
@@ -97,35 +211,85 @@ const RolesSection = () => {
                     </div>
                   </div>
                   
-                  <p className="text-muted-foreground mb-4 leading-relaxed">
+                  <motion.p 
+                    className="text-muted-foreground mb-4 leading-relaxed"
+                    initial={{ opacity: 0 }}
+                    whileInView={{ opacity: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: index * 0.1 + 0.4 }}
+                  >
                     {role.description}
-                  </p>
+                  </motion.p>
                   
-                  <ul className="space-y-2">
-                    {role.features.map((feature) => (
-                      <li key={feature} className="flex items-center gap-2 text-sm">
-                        <div className={`w-1.5 h-1.5 rounded-full ${bgColors[role.color].replace('/10', '')}`} />
+                  <motion.ul 
+                    className="space-y-2"
+                    variants={featureVariants}
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true }}
+                  >
+                    {role.features.map((feature, idx) => (
+                      <motion.li 
+                        key={feature} 
+                        className="flex items-center gap-2 text-sm"
+                        variants={featureVariants}
+                        whileHover={{ x: 5 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <motion.div 
+                          className={`w-1.5 h-1.5 rounded-full ${bgColors[role.color].replace('/10', '')}`}
+                          animate={{ scale: [1, 1.3, 1] }}
+                          transition={{ 
+                            duration: 1.5, 
+                            repeat: Infinity, 
+                            delay: idx * 0.1 + index * 0.3,
+                          }}
+                        />
                         <span className="text-foreground">{feature}</span>
-                      </li>
+                      </motion.li>
                     ))}
-                  </ul>
+                  </motion.ul>
                 </div>
-              </div>
+              </motion.div>
             );
           })}
-        </div>
+        </motion.div>
 
         {/* CTA */}
-        <div className="mt-12 text-center">
-          <Button 
-            size="lg" 
-            className="gradient-bg text-white px-8 py-6 text-lg font-semibold shadow-lg hover:opacity-90 transition-all hover:scale-105"
-            onClick={() => navigate("/login")}
+        <motion.div 
+          className="mt-12 text-center"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.5 }}
+        >
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
-            Access Your Dashboard
-            <ArrowRight size={20} className="ml-2" />
-          </Button>
-        </div>
+            <Button 
+              size="lg" 
+              className="gradient-bg text-white px-8 py-6 text-lg font-semibold shadow-lg hover:opacity-90 transition-all relative overflow-hidden group"
+              onClick={() => navigate("/login")}
+            >
+              <motion.span
+                className="absolute inset-0 bg-white/20"
+                initial={{ x: "-100%" }}
+                whileHover={{ x: "100%" }}
+                transition={{ duration: 0.5 }}
+              />
+              <span className="relative flex items-center">
+                Access Your Dashboard
+                <motion.div
+                  animate={{ x: [0, 5, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                >
+                  <ArrowRight size={20} className="ml-2" />
+                </motion.div>
+              </span>
+            </Button>
+          </motion.div>
+        </motion.div>
       </div>
     </section>
   );

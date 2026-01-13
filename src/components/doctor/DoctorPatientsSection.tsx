@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Users, Search, Thermometer, Heart, Wind, Droplets, AlertTriangle, Wifi, WifiOff, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useDoctorPatients, PatientFullData } from '@/hooks/useDoctorPatients';
 import { UserData } from '@/lib/firebase';
 import { Loader2 } from 'lucide-react';
+import AddPatientDialog from './AddPatientDialog';
 
 interface DoctorPatientsSectionProps {
   userData: UserData | null;
@@ -152,9 +153,16 @@ const PatientDetailView: React.FC<{ patient: PatientFullData }> = ({ patient }) 
 };
 
 const DoctorPatientsSection: React.FC<DoctorPatientsSectionProps> = ({ userData }) => {
-  const { assignedPatients, isLoading } = useDoctorPatients(userData);
+  const { assignedPatients, isLoading, refreshPatients } = useDoctorPatients(userData);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPatient, setSelectedPatient] = useState<PatientFullData | null>(null);
+
+  const handlePatientAdded = useCallback(() => {
+    // Refresh patient list when a new patient is added
+    if (refreshPatients) {
+      refreshPatients();
+    }
+  }, [refreshPatients]);
 
   const filteredPatients = assignedPatients.filter(p => 
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -171,9 +179,12 @@ const DoctorPatientsSection: React.FC<DoctorPatientsSectionProps> = ({ userData 
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl lg:text-3xl font-bold text-foreground">My Patients</h1>
-        <p className="text-muted-foreground">View and monitor your assigned patients</p>
+      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-bold text-foreground">My Patients</h1>
+          <p className="text-muted-foreground">View and monitor your assigned patients</p>
+        </div>
+        {userData && <AddPatientDialog doctorId={userData.uid} onPatientAdded={handlePatientAdded} />}
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

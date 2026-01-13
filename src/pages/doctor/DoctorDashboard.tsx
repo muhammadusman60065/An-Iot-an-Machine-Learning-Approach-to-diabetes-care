@@ -6,7 +6,6 @@ import DiabetesChatbot from "@/components/chatbot/DiabetesChatbot";
 import DoctorOverviewSection from "@/components/doctor/DoctorOverviewSection";
 import DoctorPatientsSection from "@/components/doctor/DoctorPatientsSection";
 import DoctorAlertsSection from "@/components/doctor/DoctorAlertsSection";
-import DoctorAppointments from "@/components/doctor/DoctorAppointments";
 import DoctorSettings from "@/components/doctor/DoctorSettings";
 
 const DoctorDashboard = () => {
@@ -22,9 +21,6 @@ const DoctorDashboard = () => {
     }
     if (path.includes('/doctor/alerts')) {
       return <DoctorAlertsSection userData={userData} />;
-    }
-    if (path.includes('/doctor/appointments')) {
-      return <DoctorAppointments userData={userData} />;
     }
     if (path.includes('/doctor/settings')) {
       return <DoctorSettings userData={userData} />;

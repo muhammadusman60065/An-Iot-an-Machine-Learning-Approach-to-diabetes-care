@@ -69,7 +69,7 @@ const TechStackSection = () => {
       y: 0,
       scale: 1,
       transition: {
-        type: "spring",
+        type: "spring" as const,
         stiffness: 100,
         damping: 15,
       },
@@ -82,7 +82,7 @@ const TechStackSection = () => {
       opacity: 1,
       scale: 1,
       transition: {
-        type: "spring",
+        type: "spring" as const,
         stiffness: 200,
         damping: 15,
       },
@@ -185,15 +185,6 @@ const TechStackSection = () => {
                       scale: 1.15,
                       rotate: [0, -10, 10, 0],
                     }}
-                    transition={{ duration: 0.3 }}
-                    animate={{ 
-                      boxShadow: [
-                        `0 0 0px rgba(0,0,0,0)`,
-                        `0 0 20px ${category.color === 'primary' ? 'rgba(102, 126, 234, 0.3)' : category.color === 'info' ? 'rgba(59, 130, 246, 0.3)' : category.color === 'success' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
-                        `0 0 0px rgba(0,0,0,0)`,
-                      ],
-                    }}
-                    transition={{ duration: 3, repeat: Infinity, delay: index * 0.5 }}
                   >
                     <Icon className={`w-6 h-6 ${textColors[category.color]}`} />
                   </motion.div>

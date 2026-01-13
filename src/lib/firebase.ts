@@ -41,7 +41,7 @@ export const patientsRef = ref(database, "patients");
 export const alertsRef = ref(database, "alerts");
 export const usersRef = ref(database, "users");
 
-export type UserRole = "patient" | "doctor" | "admin";
+export type UserRole = "patient" | "doctor" | "admin" | "family";
 
 export interface UserData {
   uid: string;
@@ -191,6 +191,35 @@ export const getUsersByRole = async (role: UserRole): Promise<UserData[]> => {
   return allUsers.filter(u => u.role === role);
 };
 
+// Find patient by email
+export const findPatientByEmail = async (email: string): Promise<UserData | null> => {
+  const allUsers = await getAllUsers();
+  const patient = allUsers.find(
+    u => u.email.toLowerCase() === email.toLowerCase() && u.role === "patient"
+  );
+  return patient || null;
+};
+
+// Add patient to doctor by email
+export const addPatientToDoctorByEmail = async (doctorId: string, patientEmail: string): Promise<void> => {
+  const patient = await findPatientByEmail(patientEmail);
+  if (!patient) {
+    throw new Error("Patient not found with this email");
+  }
+  if (!patient.patientId) {
+    throw new Error("Patient does not have a linked device/patientId");
+  }
+  
+  // Check if already assigned
+  const existingAssignments = await getDoctorAssignments(doctorId);
+  if (existingAssignments.includes(patient.patientId)) {
+    throw new Error("This patient is already assigned to you");
+  }
+  
+  // Add to doctorAssignments
+  await assignPatientToDoctor(doctorId, patient.patientId);
+};
+
 // Update user data
 export const updateUserData = async (uid: string, updates: Partial<UserData>): Promise<void> => {
   const userRef = ref(database, `users/${uid}`);
@@ -200,17 +229,136 @@ export const updateUserData = async (uid: string, updates: Partial<UserData>): P
   await set(userRef, { ...current, ...updates });
 };
 
+// Update user profile (nested profile object)
+export const updateUserProfile = async (uid: string, profileUpdates: Record<string, any>): Promise<void> => {
+  const userRef = ref(database, `users/${uid}`);
+  const snapshot = await get(userRef);
+  if (!snapshot.exists()) throw new Error("User not found");
+  const current = snapshot.val();
+  const updatedProfile = { ...(current.profile || {}), ...profileUpdates };
+  await set(userRef, { ...current, profile: updatedProfile });
+};
+
+// Get user profile
+export const getUserProfile = async (uid: string): Promise<Record<string, any> | null> => {
+  const userRef = ref(database, `users/${uid}/profile`);
+  const snapshot = await get(userRef);
+  return snapshot.exists() ? snapshot.val() : null;
+};
+
 // Delete user
 export const deleteUser = async (uid: string): Promise<void> => {
   const userRef = ref(database, `users/${uid}`);
   await set(userRef, null);
 };
 
+// Update user status (enable/disable)
+export const updateUserStatus = async (uid: string, enabled: boolean): Promise<void> => {
+  const userRef = ref(database, `users/${uid}`);
+  const snapshot = await get(userRef);
+  if (!snapshot.exists()) throw new Error("User not found");
+  const current = snapshot.val();
+  await set(userRef, { ...current, accountEnabled: enabled, status: enabled ? 'active' : 'disabled' });
+};
+
+// Create user with role (for admin to create users)
+export const createUserWithRole = async (userData: Partial<UserData> & { email: string; role: UserRole }): Promise<void> => {
+  // Generate a temporary UID for the user record
+  const tempUid = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const userRef = ref(database, `users/${tempUid}`);
+  
+  const newUser: UserData = {
+    uid: tempUid,
+    name: userData.name || userData.email.split('@')[0],
+    email: userData.email,
+    role: userData.role,
+    createdAt: new Date().toISOString(),
+    patientId: userData.patientId,
+    assignedPatients: userData.role === 'doctor' ? [] : undefined,
+  };
+  
+  await set(userRef, newUser);
+};
+
+// Add family member to patient
+export const addFamilyMemberToPatient = async (
+  patientUid: string,
+  familyEmail: string,
+  relationship: string
+): Promise<void> => {
+  // Check if family member already exists
+  const allUsers = await getAllUsers();
+  let familyUser = allUsers.find(u => u.email.toLowerCase() === familyEmail.toLowerCase());
+  
+  if (familyUser && familyUser.role !== 'family') {
+    throw new Error("This email is already registered with a different role");
+  }
+  
+  // Get patient data
+  const patientRef = ref(database, `users/${patientUid}`);
+  const patientSnapshot = await get(patientRef);
+  if (!patientSnapshot.exists()) throw new Error("Patient not found");
+  const patientData = patientSnapshot.val();
+  
+  if (!patientData.patientId) {
+    throw new Error("Patient does not have a linked device");
+  }
+  
+  // Create family user if doesn't exist
+  if (!familyUser) {
+    const familyUid = `family_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const familyUserData: UserData = {
+      uid: familyUid,
+      name: familyEmail.split('@')[0],
+      email: familyEmail,
+      role: 'family' as UserRole,
+      createdAt: new Date().toISOString(),
+    };
+    await set(ref(database, `users/${familyUid}`), {
+      ...familyUserData,
+      linkedPatient: patientData.patientId,
+      linkedPatientUid: patientUid,
+      relationship,
+    });
+    familyUser = { ...familyUserData, uid: familyUid };
+  } else {
+    // Update existing family user to link to patient
+    await set(ref(database, `users/${familyUser.uid}`), {
+      ...familyUser,
+      linkedPatient: patientData.patientId,
+      linkedPatientUid: patientUid,
+      relationship,
+    });
+  }
+  
+  // Add to patient's familyMembers array
+  const currentFamilyMembers = patientData.familyMembers || [];
+  if (!currentFamilyMembers.includes(familyUser.uid)) {
+    await set(patientRef, {
+      ...patientData,
+      familyMembers: [...currentFamilyMembers, familyUser.uid],
+    });
+  }
+};
+
+// Get family members for a patient
+export const getPatientFamilyMembers = async (patientUid: string): Promise<UserData[]> => {
+  const patientRef = ref(database, `users/${patientUid}`);
+  const snapshot = await get(patientRef);
+  if (!snapshot.exists()) return [];
+  
+  const patientData = snapshot.val();
+  const familyMemberIds = patientData.familyMembers || [];
+  
+  const allUsers = await getAllUsers();
+  return allUsers.filter(u => familyMemberIds.includes(u.uid));
+};
+
 // Assign patient to doctor
 export const assignPatientToDoctor = async (doctorId: string, patientId: string): Promise<void> => {
-  const assignmentRef = ref(database, `assignments/${doctorId}/${patientId}`);
+  // Add to doctorAssignments path (matches your Firebase rules)
+  const assignmentRef = ref(database, `doctorAssignments/${doctorId}/patients/${patientId}`);
   await set(assignmentRef, {
-    doctorId,
     patientId,
     assignedAt: new Date().toISOString(),
   });
@@ -229,7 +377,8 @@ export const assignPatientToDoctor = async (doctorId: string, patientId: string)
 
 // Unassign patient from doctor
 export const unassignPatientFromDoctor = async (doctorId: string, patientId: string): Promise<void> => {
-  const assignmentRef = ref(database, `assignments/${doctorId}/${patientId}`);
+  // Remove from doctorAssignments
+  const assignmentRef = ref(database, `doctorAssignments/${doctorId}/patients/${patientId}`);
   await set(assignmentRef, null);
   
   // Also update doctor's assignedPatients array
@@ -242,26 +391,51 @@ export const unassignPatientFromDoctor = async (doctorId: string, patientId: str
   }
 };
 
-// Get assigned patients for a doctor
+// Get assigned patients for a doctor - updated to use doctorAssignments path
 export const getDoctorAssignments = async (doctorId: string): Promise<string[]> => {
-  const assignmentsRef = ref(database, `assignments/${doctorId}`);
-  const snapshot = await get(assignmentsRef);
-  if (!snapshot.exists()) return [];
-  return Object.keys(snapshot.val());
+  // First try the new doctorAssignments path
+  const newAssignmentsRef = ref(database, `doctorAssignments/${doctorId}/patients`);
+  const newSnapshot = await get(newAssignmentsRef);
+  if (newSnapshot.exists()) {
+    return Object.keys(newSnapshot.val());
+  }
+  
+  // Fallback to old assignments path for backward compatibility
+  const oldAssignmentsRef = ref(database, `assignments/${doctorId}`);
+  const oldSnapshot = await get(oldAssignmentsRef);
+  if (oldSnapshot.exists()) {
+    return Object.keys(oldSnapshot.val());
+  }
+  
+  return [];
 };
 
 // Get all assignments (for admin)
 export const getAllAssignments = async (): Promise<Record<string, string[]>> => {
-  const assignmentsRef = ref(database, "assignments");
-  const snapshot = await get(assignmentsRef);
-  if (!snapshot.exists()) return {};
-  
-  const data = snapshot.val();
   const result: Record<string, string[]> = {};
   
-  Object.keys(data).forEach(doctorId => {
-    result[doctorId] = Object.keys(data[doctorId]);
-  });
+  // Try new path first
+  const newAssignmentsRef = ref(database, "doctorAssignments");
+  const newSnapshot = await get(newAssignmentsRef);
+  if (newSnapshot.exists()) {
+    const data = newSnapshot.val();
+    Object.keys(data).forEach(doctorId => {
+      if (data[doctorId].patients) {
+        result[doctorId] = Object.keys(data[doctorId].patients);
+      }
+    });
+    return result;
+  }
+  
+  // Fallback to old path
+  const oldAssignmentsRef = ref(database, "assignments");
+  const oldSnapshot = await get(oldAssignmentsRef);
+  if (oldSnapshot.exists()) {
+    const data = oldSnapshot.val();
+    Object.keys(data).forEach(doctorId => {
+      result[doctorId] = Object.keys(data[doctorId]);
+    });
+  }
   
   return result;
 };

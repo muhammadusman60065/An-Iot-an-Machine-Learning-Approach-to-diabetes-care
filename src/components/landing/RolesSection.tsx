@@ -7,16 +7,16 @@ const roles = [
   {
     icon: User,
     title: "Patient",
-    description: "View your real-time vitals, historical trends, health alerts, and manage your profile. Download PDF reports and book appointments with your doctor.",
-    features: ["Real-time vitals dashboard", "Health alerts & notifications", "PDF report generation", "Appointment booking", "Profile & settings management"],
+    description: "View your real-time vitals, historical trends, health alerts, and manage your profile. Download PDF reports and stay connected with your healthcare team.",
+    features: ["Real-time vitals dashboard", "Health alerts & notifications", "PDF report generation", "Profile & settings management"],
     color: "primary",
     gradient: "from-primary to-primary-end",
   },
   {
     icon: Stethoscope,
     title: "Doctor",
-    description: "Monitor all assigned patients, view their health data, respond to critical alerts, and manage appointments. Make informed decisions with comprehensive patient insights.",
-    features: ["Multi-patient monitoring", "Critical alert management", "Patient health history", "Appointment management", "Care recommendations"],
+    description: "Monitor all assigned patients, view their health data, respond to critical alerts, and add new patients via email. Make informed decisions with comprehensive patient insights.",
+    features: ["Multi-patient monitoring", "Critical alert management", "Patient health history", "Add patients via email", "Care recommendations"],
     color: "info",
     gradient: "from-info to-primary",
   },
@@ -31,8 +31,8 @@ const roles = [
   {
     icon: ShieldCheck,
     title: "Administrator",
-    description: "Full system administration including user management, analytics, system alerts, and configuration. Ensure smooth operation of the entire platform.",
-    features: ["User management", "System analytics", "Platform configuration", "Access control", "System health monitoring"],
+    description: "Full system administration including user management, patient/doctor management, family access control, and system monitoring. Ensure smooth operation of the entire platform.",
+    features: ["Patient & doctor management", "Family access control", "System analytics", "Access control", "System health monitoring"],
     color: "warning",
     gradient: "from-warning to-destructive",
   },
@@ -71,7 +71,7 @@ const RolesSection = () => {
       y: 0,
       scale: 1,
       transition: {
-        type: "spring",
+        type: "spring" as const,
         stiffness: 100,
         damping: 15,
       },
@@ -189,15 +189,6 @@ const RolesSection = () => {
                         scale: 1.15,
                         rotate: [0, -10, 10, 0],
                       }}
-                      transition={{ duration: 0.3 }}
-                      animate={{ 
-                        boxShadow: [
-                          `0 0 0px ${role.color === 'primary' ? 'rgba(102, 126, 234, 0)' : role.color === 'info' ? 'rgba(59, 130, 246, 0)' : role.color === 'success' ? 'rgba(16, 185, 129, 0)' : 'rgba(245, 158, 11, 0)'}`,
-                          `0 0 20px ${role.color === 'primary' ? 'rgba(102, 126, 234, 0.3)' : role.color === 'info' ? 'rgba(59, 130, 246, 0.3)' : role.color === 'success' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
-                          `0 0 0px ${role.color === 'primary' ? 'rgba(102, 126, 234, 0)' : role.color === 'info' ? 'rgba(59, 130, 246, 0)' : role.color === 'success' ? 'rgba(16, 185, 129, 0)' : 'rgba(245, 158, 11, 0)'}`,
-                        ],
-                      }}
-                      transition={{ duration: 3, repeat: Infinity, delay: index * 0.5 }}
                     >
                       <Icon className={`w-7 h-7 ${textColors[role.color]}`} />
                     </motion.div>

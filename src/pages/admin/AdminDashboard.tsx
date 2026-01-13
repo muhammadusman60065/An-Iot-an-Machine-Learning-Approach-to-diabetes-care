@@ -2,7 +2,7 @@ import { useState } from "react";
 import { 
   Users, Activity, Server, AlertTriangle, TrendingUp, Database, Cpu, Wifi, 
   Loader2, Mail, User, UserPlus, UserMinus, Link2, Unlink, RefreshCw,
-  Shield, Heart, Droplets, Clock
+  Shield, Heart, Droplets, Clock, Settings, Stethoscope
 } from "lucide-react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import MetricCard from "@/components/dashboard/MetricCard";
@@ -30,6 +30,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { UserRole } from "@/lib/firebase";
 import { motion, AnimatePresence } from "framer-motion";
+import PatientManagementSection from "@/components/admin/PatientManagementSection";
+import DoctorManagementSection from "@/components/admin/DoctorManagementSection";
+import FamilyAccessSection from "@/components/admin/FamilyAccessSection";
+import AdminSettings from "@/components/admin/AdminSettings";
 
 const AdminDashboard = () => {
   const { userData } = useAuth();
@@ -245,20 +249,93 @@ const AdminDashboard = () => {
           transition={{ delay: 0.3 }}
         >
           <Tabs defaultValue="users" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="users">
-              Users ({allUsers.length})
-            </TabsTrigger>
-            <TabsTrigger value="assignments">
-              Assignments
-            </TabsTrigger>
-            <TabsTrigger value="monitoring">
-              Live Monitoring
-            </TabsTrigger>
-            <TabsTrigger value="system">
-              System Status
-            </TabsTrigger>
+          <TabsList className="grid w-full grid-cols-7">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="patients">Patients</TabsTrigger>
+            <TabsTrigger value="doctors">Doctors</TabsTrigger>
+            <TabsTrigger value="family">Family</TabsTrigger>
+            <TabsTrigger value="monitoring">Monitoring</TabsTrigger>
+            <TabsTrigger value="system">System</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
+
+          {/* Overview Tab - moved from users */}
+          <TabsContent value="overview" className="mt-6">
+            <div className="space-y-6">
+              <div className="grid lg:grid-cols-4 gap-4">
+                <div className="bg-card rounded-xl p-4 shadow-card">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                      <User className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-foreground">{patients.length}</p>
+                      <p className="text-sm text-muted-foreground">Patients</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-card rounded-xl p-4 shadow-card">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-info/20 flex items-center justify-center">
+                      <Stethoscope className="w-5 h-5 text-info" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-foreground">{doctors.length}</p>
+                      <p className="text-sm text-muted-foreground">Doctors</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-card rounded-xl p-4 shadow-card">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-warning/20 flex items-center justify-center">
+                      <Shield className="w-5 h-5 text-warning" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-foreground">{admins.length}</p>
+                      <p className="text-sm text-muted-foreground">Admins</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-card rounded-xl p-4 shadow-card">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center">
+                      <Cpu className="w-5 h-5 text-success" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-foreground">{totalConnectedDevices}</p>
+                      <p className="text-sm text-muted-foreground">Connected</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <HealthChart 
+                title="System Activity (24h)" 
+                data={mockSystemActivity} 
+                color="hsl(174, 72%, 40%)" 
+                unit="requests/min" 
+              />
+            </div>
+          </TabsContent>
+
+          {/* Patients Tab */}
+          <TabsContent value="patients" className="mt-6">
+            <PatientManagementSection patients={patients} onRefresh={refreshData} />
+          </TabsContent>
+
+          {/* Doctors Tab */}
+          <TabsContent value="doctors" className="mt-6">
+            <DoctorManagementSection 
+              doctors={doctors} 
+              patients={patients}
+              assignments={assignments}
+              onRefresh={refreshData} 
+            />
+          </TabsContent>
+
+          {/* Family Tab */}
+          <TabsContent value="family" className="mt-6">
+            <FamilyAccessSection patients={patients} onRefresh={refreshData} />
+          </TabsContent>
 
           {/* Users Tab */}
           <TabsContent value="users" className="mt-6">

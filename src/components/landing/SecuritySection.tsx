@@ -41,7 +41,7 @@ const SecuritySection = () => {
       opacity: 1,
       x: 0,
       transition: {
-        type: "spring",
+        type: "spring" as const,
         stiffness: 100,
         damping: 15,
       },
@@ -54,7 +54,7 @@ const SecuritySection = () => {
       opacity: 1,
       scale: 1,
       transition: {
-        type: "spring",
+        type: "spring" as const,
         stiffness: 200,
         damping: 15,
       },
@@ -153,15 +153,6 @@ const SecuritySection = () => {
                         scale: 1.15,
                         rotate: [0, -10, 10, 0],
                       }}
-                      transition={{ duration: 0.3 }}
-                      animate={{ 
-                        boxShadow: [
-                          "0 0 0px rgba(16, 185, 129, 0)",
-                          "0 0 20px rgba(16, 185, 129, 0.4)",
-                          "0 0 0px rgba(16, 185, 129, 0)",
-                        ],
-                      }}
-                      transition={{ duration: 3, repeat: Infinity, delay: index * 0.3 }}
                     >
                       <Icon className="w-5 h-5 text-success" />
                     </motion.div>

@@ -49,6 +49,7 @@ export interface UseDoctorPatientsReturn {
   warningCount: number;
   isLoading: boolean;
   error: string | null;
+  refreshPatients: () => void;
 }
 
 /**
@@ -60,6 +61,11 @@ export const useDoctorPatients = (userData: UserData | null): UseDoctorPatientsR
   const [allAlerts, setAllAlerts] = useState<PatientAlert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const refreshPatients = useCallback(() => {
+    setRefreshTrigger(prev => prev + 1);
+  }, []);
 
   // Update delay for all patients every second
   useEffect(() => {
@@ -194,5 +200,6 @@ export const useDoctorPatients = (userData: UserData | null): UseDoctorPatientsR
     warningCount,
     isLoading,
     error,
+    refreshPatients,
   };
 };

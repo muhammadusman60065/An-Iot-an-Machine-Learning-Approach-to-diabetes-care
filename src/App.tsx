@@ -135,31 +135,6 @@ const App = () => (
                 <AdminDashboard />
               </ProtectedRoute>
             } />
-            <Route path="/admin/patients" element={
-              <ProtectedRoute allowedRoles={["admin"]}>
-                <AdminDashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/admin/doctors" element={
-              <ProtectedRoute allowedRoles={["admin"]}>
-                <AdminDashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/admin/family" element={
-              <ProtectedRoute allowedRoles={["admin"]}>
-                <AdminDashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/admin/monitoring" element={
-              <ProtectedRoute allowedRoles={["admin"]}>
-                <AdminDashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/admin/system" element={
-              <ProtectedRoute allowedRoles={["admin"]}>
-                <AdminDashboard />
-              </ProtectedRoute>
-            } />
             <Route path="/admin/analytics" element={
               <ProtectedRoute allowedRoles={["admin"]}>
                 <AdminDashboard />

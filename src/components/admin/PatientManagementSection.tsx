@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
-import { UserData, createUserWithRole, updateUserStatus, deleteUser, updateUserProfile, sendPasswordReset } from '@/lib/firebase';
+import { UserData, createUserWithRole, updateUserStatus, deleteUser, updateUserProfile } from '@/lib/firebase';
 
 interface PatientManagementSectionProps {
   patients: UserData[];
@@ -138,20 +138,12 @@ const PatientManagementSection: React.FC<PatientManagementSectionProps> = ({ pat
   };
 
   const handleResetPassword = async (patient: UserData) => {
-    try {
-      await sendPasswordReset(patient.email);
-      toast({ 
-        title: "Password Reset Sent", 
-        description: `Password reset email has been sent to ${patient.email}` 
-      });
-    } catch (error) {
-      console.error('Error sending password reset:', error);
-      toast({ 
-        title: "Error", 
-        description: "Failed to send password reset email", 
-        variant: "destructive" 
-      });
-    }
+    // Note: Firebase client SDK doesn't allow setting passwords directly
+    // This would need to use Firebase Admin SDK or send password reset email
+    toast({ 
+      title: "Password Reset", 
+      description: `Password reset email would be sent to ${patient.email}. This requires Firebase Admin SDK implementation.` 
+    });
   };
 
   const openEditDialog = (patient: UserData) => {

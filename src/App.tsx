@@ -125,17 +125,37 @@ const App = () => (
             } />
             
             {/* Admin Routes - Protected */}
+            <Route path="/admin" element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            } />
             <Route path="/admin/dashboard" element={
               <ProtectedRoute allowedRoles={["admin"]}>
                 <AdminDashboard />
               </ProtectedRoute>
             } />
-            <Route path="/admin/users" element={
+            <Route path="/admin/patients" element={
               <ProtectedRoute allowedRoles={["admin"]}>
                 <AdminDashboard />
               </ProtectedRoute>
             } />
-            <Route path="/admin/analytics" element={
+            <Route path="/admin/doctors" element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/family" element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/monitoring" element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/system" element={
               <ProtectedRoute allowedRoles={["admin"]}>
                 <AdminDashboard />
               </ProtectedRoute>

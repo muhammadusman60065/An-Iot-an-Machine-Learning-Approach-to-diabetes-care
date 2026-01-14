@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getDatabase, ref, onValue, push, set, get } from "firebase/database";
+import { getDatabase, ref, onValue, push, set, get, update, remove } from "firebase/database";
 import {
   getAuth,
   signInWithEmailAndPassword,
@@ -8,6 +8,7 @@ import {
   GoogleAuthProvider,
   signOut as firebaseSignOut,
   onAuthStateChanged,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 import type { DatabaseReference } from "firebase/database";
 
@@ -440,6 +441,78 @@ export const getAllAssignments = async (): Promise<Record<string, string[]>> => 
   return result;
 };
 
+// Send password reset email
+export const sendPasswordReset = async (email: string): Promise<void> => {
+  try {
+    await sendPasswordResetEmail(auth, email);
+  } catch (error) {
+    console.error('Error sending password reset email:', error);
+    throw error;
+  }
+};
+
+// Get all system alerts from all patients
+export const getAllSystemAlerts = async (): Promise<any[]> => {
+  try {
+    const patientsRef = ref(database, 'patients');
+    const snapshot = await get(patientsRef);
+    
+    if (!snapshot.exists()) return [];
+    
+    const data = snapshot.val();
+    const allAlerts: any[] = [];
+    
+    Object.entries(data).forEach(([patientId, patientData]: [string, any]) => {
+      if (patientData.alerts) {
+        Object.entries(patientData.alerts).forEach(([alertId, alertData]: [string, any]) => {
+          allAlerts.push({
+            id: alertId,
+            patientId,
+            patientName: patientData.info?.name || `Patient ${patientId}`,
+            ...alertData,
+          });
+        });
+      }
+    });
+    
+    return allAlerts.sort((a, b) => 
+      new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime()
+    );
+  } catch (error) {
+    console.error('Error fetching system alerts:', error);
+    return [];
+  }
+};
+
+// Acknowledge an alert
+export const acknowledgeAlert = async (patientId: string, alertId: string): Promise<void> => {
+  try {
+    const alertRef = ref(database, `patients/${patientId}/alerts/${alertId}`);
+    const snapshot = await get(alertRef);
+    if (snapshot.exists()) {
+      await set(alertRef, { 
+        ...snapshot.val(), 
+        isRead: true, 
+        acknowledgedAt: new Date().toISOString() 
+      });
+    }
+  } catch (error) {
+    console.error('Error acknowledging alert:', error);
+    throw error;
+  }
+};
+
+// Delete an alert
+export const deleteAlert = async (patientId: string, alertId: string): Promise<void> => {
+  try {
+    const alertRef = ref(database, `patients/${patientId}/alerts/${alertId}`);
+    await set(alertRef, null);
+  } catch (error) {
+    console.error('Error deleting alert:', error);
+    throw error;
+  }
+};
+
 // Re-export Realtime DB helpers
-export { onValue, ref, push, set, get };
+export { onValue, ref, push, set, get, update, remove };
 export type { DatabaseReference };

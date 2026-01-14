@@ -10,6 +10,7 @@ import {
   assignPatientToDoctor,
   unassignPatientFromDoctor,
   getAllAssignments,
+  sendPasswordReset,
   UserData,
   UserRole
 } from "@/lib/firebase";
@@ -49,6 +50,7 @@ export interface UseAdminDataReturn {
   patients: UserData[];
   doctors: UserData[];
   admins: UserData[];
+  familyMembers: UserData[];
   
   // System data
   systemPatients: SystemPatient[];
@@ -68,6 +70,7 @@ export interface UseAdminDataReturn {
   removeUser: (uid: string) => Promise<void>;
   assignPatient: (doctorId: string, patientId: string) => Promise<void>;
   unassignPatient: (doctorId: string, patientId: string) => Promise<void>;
+  resetUserPassword: (email: string) => Promise<void>;
   refreshData: () => Promise<void>;
 }
 
@@ -231,9 +234,19 @@ export const useAdminData = (userData: UserData | null): UseAdminDataReturn => {
     }
   };
 
+  const resetUserPassword = async (email: string) => {
+    try {
+      await sendPasswordReset(email);
+    } catch (err) {
+      console.error("Error sending password reset:", err);
+      throw err;
+    }
+  };
+
   const patients = allUsers.filter(u => u.role === "patient");
   const doctors = allUsers.filter(u => u.role === "doctor");
   const admins = allUsers.filter(u => u.role === "admin");
+  const familyMembers = allUsers.filter(u => u.role === "family");
   const totalConnectedDevices = systemPatients.filter(p => p.isConnected).length;
   const criticalAlerts = systemAlerts.filter(a => a.type === "critical" && !a.isRead).length;
 
@@ -242,6 +255,7 @@ export const useAdminData = (userData: UserData | null): UseAdminDataReturn => {
     patients,
     doctors,
     admins,
+    familyMembers,
     systemPatients,
     systemAlerts,
     assignments,
@@ -253,6 +267,7 @@ export const useAdminData = (userData: UserData | null): UseAdminDataReturn => {
     removeUser,
     assignPatient,
     unassignPatient,
+    resetUserPassword,
     refreshData,
   };
 };

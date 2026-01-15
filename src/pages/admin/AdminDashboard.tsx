@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { 
   Users, Activity, Server, AlertTriangle, TrendingUp, Database, Cpu, Wifi, 
   Loader2, Mail, User, UserPlus, UserMinus, Link2, Unlink, RefreshCw,
@@ -36,30 +35,6 @@ import DoctorManagementSection from "@/components/admin/DoctorManagementSection"
 import FamilyAccessSection from "@/components/admin/FamilyAccessSection";
 import AdminSettings from "@/components/admin/AdminSettings";
 
-// Map routes to tab values
-const routeToTab: Record<string, string> = {
-  "/admin": "overview",
-  "/admin/dashboard": "overview",
-  "/admin/patients": "patients",
-  "/admin/doctors": "doctors",
-  "/admin/family": "family",
-  "/admin/monitoring": "monitoring",
-  "/admin/system": "system",
-  "/admin/alerts": "alerts",
-  "/admin/settings": "settings",
-};
-
-const tabToRoute: Record<string, string> = {
-  overview: "/admin/dashboard",
-  patients: "/admin/patients",
-  doctors: "/admin/doctors",
-  family: "/admin/family",
-  monitoring: "/admin/monitoring",
-  system: "/admin/system",
-  alerts: "/admin/alerts",
-  settings: "/admin/settings",
-};
-
 const AdminDashboard = () => {
   const { userData } = useAuth();
   const {
@@ -80,26 +55,12 @@ const AdminDashboard = () => {
     refreshData,
   } = useAdminData(userData);
 
-  const location = useLocation();
-  const navigate = useNavigate();
-  
-  // Get current tab from route
-  const currentTab = routeToTab[location.pathname] || "overview";
-
   const [selectedDoctorForAssign, setSelectedDoctorForAssign] = useState<string>("");
   const [selectedPatientForAssign, setSelectedPatientForAssign] = useState<string>("");
   const [isAssigning, setIsAssigning] = useState(false);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
   const [roleChangeUser, setRoleChangeUser] = useState<{ uid: string; currentRole: UserRole } | null>(null);
   const [newRole, setNewRole] = useState<UserRole>("patient");
-
-  // Handle tab change - navigate to corresponding route
-  const handleTabChange = (value: string) => {
-    const route = tabToRoute[value];
-    if (route) {
-      navigate(route);
-    }
-  };
 
   const mockSystemActivity = [
     { time: "00:00", value: 45 }, { time: "04:00", value: 32 }, { time: "08:00", value: 78 },
@@ -287,7 +248,7 @@ const AdminDashboard = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
+          <Tabs defaultValue="users" className="w-full">
           <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="patients">Patients</TabsTrigger>
@@ -376,8 +337,8 @@ const AdminDashboard = () => {
             <FamilyAccessSection patients={patients} onRefresh={refreshData} />
           </TabsContent>
 
-          {/* Alerts Tab - Previously Users Tab */}
-          <TabsContent value="alerts" className="mt-6">
+          {/* Users Tab */}
+          <TabsContent value="users" className="mt-6">
             <div className="space-y-6">
               {/* User Distribution */}
               <div className="grid lg:grid-cols-4 gap-4">
@@ -851,11 +812,6 @@ const AdminDashboard = () => {
                 )}
               </div>
             </div>
-          </TabsContent>
-
-          {/* Settings Tab */}
-          <TabsContent value="settings" className="mt-6">
-            <AdminSettings userData={userData} />
           </TabsContent>
         </Tabs>
         </motion.div>

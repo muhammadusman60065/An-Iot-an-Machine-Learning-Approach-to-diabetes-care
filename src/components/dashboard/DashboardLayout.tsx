@@ -48,8 +48,7 @@ const navigationConfig = {
     { label: "Patients", icon: Users, path: "/admin/patients" },
     { label: "Doctors", icon: UserCog, path: "/admin/doctors" },
     { label: "Family Access", icon: User, path: "/admin/family" },
-    { label: "Monitoring", icon: Activity, path: "/admin/monitoring" },
-    { label: "System", icon: BarChart3, path: "/admin/system" },
+    { label: "System Alerts", icon: Bell, path: "/admin/alerts" },
     { label: "Settings", icon: Settings, path: "/admin/settings" },
   ],
 };

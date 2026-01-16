@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { usePatientVitals } from '../hooks/usePatientVitals';
@@ -14,9 +14,12 @@ import {
   Droplets,
   AlertTriangle,
   Menu,
-  X
+  X,
+  UserPlus,
+  RefreshCw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import AddPatientByIdDialog from '../components/doctor/AddPatientByIdDialog';
 
 export const DoctorDashboard: React.FC = () => {
   const { userProfile, logout } = useAuth();
@@ -26,51 +29,75 @@ export const DoctorDashboard: React.FC = () => {
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const { vitals, status, alerts } = usePatientVitals(selectedPatientId || undefined);
 
-  useEffect(() => {
-    const fetchPatients = async () => {
-      if (!userProfile?.assignedPatients) {
+  const fetchPatients = useCallback(async () => {
+    if (!userProfile?.uid) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // Fetch the latest doctor data to get updated assignedPatients
+      const doctorRef = ref(database, `users/${userProfile.uid}`);
+      const doctorSnap = await get(doctorRef);
+      
+      if (!doctorSnap.exists()) {
         setLoading(false);
         return;
       }
 
-      try {
-        const usersRef = ref(database, 'users');
-        const snapshot = await get(usersRef);
-        
-        if (snapshot.exists()) {
-          const allUsers = snapshot.val();
-          const patientProfiles: UserProfile[] = [];
+      const doctorData = doctorSnap.val();
+      const assignedPatientIds = doctorData.assignedPatients || [];
 
-          Object.entries(allUsers).forEach(([uid, userData]) => {
-            const user = userData as UserProfile & { role?: string; patientId?: string };
-            if (
-              user.role === 'patient' && 
-              userProfile.assignedPatients?.includes(user.patientId || '')
-            ) {
-              patientProfiles.push({
-                uid,
-                ...user
-              });
-            }
-          });
-
-          setPatients(patientProfiles);
-          if (patientProfiles.length > 0) {
-            setSelectedPatientId(patientProfiles[0].patientId);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching patients:', error);
-      } finally {
+      if (assignedPatientIds.length === 0) {
+        setPatients([]);
         setLoading(false);
+        return;
       }
-    };
 
+      const usersRef = ref(database, 'users');
+      const snapshot = await get(usersRef);
+      
+      if (snapshot.exists()) {
+        const allUsers = snapshot.val();
+        const patientProfiles: UserProfile[] = [];
+
+        Object.entries(allUsers).forEach(([uid, userData]) => {
+          const user = userData as UserProfile & { role?: string; patientId?: string };
+          if (
+            user.role === 'patient' && 
+            assignedPatientIds.includes(user.patientId || '')
+          ) {
+            patientProfiles.push({
+              uid,
+              ...user
+            });
+          }
+        });
+
+        setPatients(patientProfiles);
+        if (patientProfiles.length > 0 && !selectedPatientId) {
+          setSelectedPatientId(patientProfiles[0].patientId);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching patients:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [userProfile?.uid, selectedPatientId]);
+
+  useEffect(() => {
     fetchPatients();
-  }, [userProfile]);
+  }, [fetchPatients, refreshKey]);
+
+  const handleRefresh = () => {
+    setLoading(true);
+    setRefreshKey(prev => prev + 1);
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -201,15 +228,41 @@ export const DoctorDashboard: React.FC = () => {
           <p className="text-sm text-muted-foreground">{userProfile?.profile?.specialization}</p>
         </motion.div>
 
+        {/* Add Patient Button */}
+        <motion.div 
+          className="mb-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.15 }}
+        >
+          <AddPatientByIdDialog
+            doctorUid={userProfile?.uid || ''}
+            doctorPatients={patients.map(p => p.patientId || '')}
+            onPatientAdded={handleRefresh}
+          />
+        </motion.div>
+
         <motion.div 
           className="mb-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
         >
-          <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">
-            Your Patients ({patients.length})
-          </h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+              Your Patients ({patients.length})
+            </h3>
+            <motion.button
+              onClick={handleRefresh}
+              className="p-1 text-muted-foreground hover:text-foreground"
+              whileHover={{ rotate: 180 }}
+              whileTap={{ scale: 0.9 }}
+              transition={{ duration: 0.3 }}
+              title="Refresh patients"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </motion.button>
+          </div>
           {patients.length === 0 ? (
             <motion.div 
               className="text-center py-8 text-muted-foreground"

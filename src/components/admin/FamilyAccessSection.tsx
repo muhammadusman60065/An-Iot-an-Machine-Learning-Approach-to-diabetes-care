@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Heart, UserPlus, Mail, Trash2, Loader2, Search, 
-  Users, Link2, AlertCircle, User
+  Users, Link2, AlertCircle, User, Edit, Eye, Bell, History, Check
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import {
   Dialog,
   DialogContent,
@@ -36,7 +37,8 @@ import {
 } from "@/components/ui/select";
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
-import { UserData, addFamilyMemberToPatient, deleteUser, getAllUsers } from '@/lib/firebase';
+import { UserData, addFamilyMemberToPatient, deleteUser, getAllUsers, database, updateUserProfile } from '@/lib/firebase';
+import { ref, update } from 'firebase/database';
 
 interface FamilyAccessSectionProps {
   patients: UserData[];
@@ -47,19 +49,37 @@ interface FamilyMember extends UserData {
   linkedPatient?: string;
   linkedPatientUid?: string;
   relationship?: string;
+  permissions?: {
+    viewVitals: boolean;
+    viewHistory: boolean;
+    receiveAlerts: boolean;
+  };
 }
 
 const FamilyAccessSection: React.FC<FamilyAccessSectionProps> = ({ patients, onRefresh }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [isLoadingFamily, setIsLoadingFamily] = useState(true);
+  const [editingMember, setEditingMember] = useState<FamilyMember | null>(null);
 
   const [newFamilyMember, setNewFamilyMember] = useState({
     email: '',
     patientUid: '',
     relationship: '',
+    permissions: {
+      viewVitals: true,
+      viewHistory: true,
+      receiveAlerts: true,
+    }
+  });
+
+  const [editPermissions, setEditPermissions] = useState({
+    viewVitals: true,
+    viewHistory: true,
+    receiveAlerts: true,
   });
 
   // Load family members
@@ -99,7 +119,12 @@ const FamilyAccessSection: React.FC<FamilyAccessSectionProps> = ({ patients, onR
       );
 
       toast({ title: "Success", description: "Family member added successfully" });
-      setNewFamilyMember({ email: '', patientUid: '', relationship: '' });
+      setNewFamilyMember({ 
+        email: '', 
+        patientUid: '', 
+        relationship: '',
+        permissions: { viewVitals: true, viewHistory: true, receiveAlerts: true }
+      });
       setIsAddDialogOpen(false);
       
       // Reload family members
@@ -129,6 +154,41 @@ const FamilyAccessSection: React.FC<FamilyAccessSectionProps> = ({ patients, onR
     } catch (error) {
       console.error('Error removing family member:', error);
       toast({ title: "Error", description: "Failed to remove family member", variant: "destructive" });
+    }
+  };
+
+  const openEditDialog = (member: FamilyMember) => {
+    setEditingMember(member);
+    setEditPermissions({
+      viewVitals: member.permissions?.viewVitals !== false,
+      viewHistory: member.permissions?.viewHistory !== false,
+      receiveAlerts: member.permissions?.receiveAlerts !== false,
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdatePermissions = async () => {
+    if (!editingMember) return;
+
+    setIsLoading(true);
+    try {
+      await update(ref(database, `users/${editingMember.uid}`), {
+        permissions: editPermissions
+      });
+
+      toast({ title: "Success", description: "Permissions updated successfully" });
+      setIsEditDialogOpen(false);
+      setEditingMember(null);
+      
+      // Reload family members
+      const allUsers = await getAllUsers();
+      const family = allUsers.filter(u => u.role === 'family') as FamilyMember[];
+      setFamilyMembers(family);
+    } catch (error) {
+      console.error('Error updating permissions:', error);
+      toast({ title: "Error", description: "Failed to update permissions", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
     }
   };
 

@@ -3,6 +3,7 @@ import {
   database, 
   ref, 
   onValue, 
+  get,
   getAllUsers, 
   getUsersByRole,
   updateUserData,
@@ -10,6 +11,7 @@ import {
   assignPatientToDoctor,
   unassignPatientFromDoctor,
   getAllAssignments,
+  normalizeAssignedPatients,
   UserData,
   UserRole
 } from "@/lib/firebase";
@@ -20,7 +22,8 @@ export interface PatientVitals {
   spo2: number;
   glucose: number;
   humidity: number;
-  timestamp: string;
+  timestamp: number;
+  bloodPressure?: string;
 }
 
 export interface SystemPatient {
@@ -28,9 +31,11 @@ export interface SystemPatient {
   name: string;
   userId?: string;
   vitals: PatientVitals | null;
-  lastUpdated: string | null;
+  lastUpdated: number | null;
   isConnected: boolean;
   assignedDoctorId?: string;
+  diabetesType?: string;
+  age?: number;
 }
 
 export interface SystemAlert {
@@ -39,8 +44,9 @@ export interface SystemAlert {
   patientName: string;
   type: "critical" | "warning" | "info";
   message: string;
-  timestamp: string;
+  timestamp: number;
   isRead: boolean;
+  severity?: string;
 }
 
 export interface UseAdminDataReturn {
@@ -70,6 +76,16 @@ export interface UseAdminDataReturn {
   unassignPatient: (doctorId: string, patientId: string) => Promise<void>;
   refreshData: () => Promise<void>;
 }
+
+// Helper to normalize timestamp
+const normalizeTimestamp = (ts: number | string | undefined): number => {
+  if (!ts) return 0;
+  if (typeof ts === 'string') {
+    const parsed = Date.parse(ts);
+    return isNaN(parsed) ? 0 : parsed;
+  }
+  return ts > 10000000000 ? ts : ts * 1000;
+};
 
 /**
  * Hook for admin dashboard - full system access
@@ -118,6 +134,26 @@ export const useAdminData = (userData: UserData | null): UseAdminDataReturn => {
       try {
         await refreshData();
 
+        // Get users to map patientId -> user profile
+        const usersRef = ref(database, "users");
+        const usersSnapshot = await get(usersRef);
+        const patientUserMap = new Map<string, { uid: string; name: string; age?: number; diabetesType?: string; assignedDoctor?: string }>();
+        
+        if (usersSnapshot.exists()) {
+          const users = usersSnapshot.val();
+          Object.entries(users).forEach(([uid, userData]: [string, any]) => {
+            if (userData.patientId) {
+              patientUserMap.set(userData.patientId, {
+                uid,
+                name: userData.profile?.name || userData.name || `Patient ${userData.patientId}`,
+                age: userData.profile?.age,
+                diabetesType: userData.profile?.diabetesType,
+                assignedDoctor: userData.assignedDoctor,
+              });
+            }
+          });
+        }
+
         // Listen to all patients data in real-time
         const patientsRef = ref(database, "patients");
         unsubPatients = onValue(patientsRef, (snapshot) => {
@@ -127,49 +163,72 @@ export const useAdminData = (userData: UserData | null): UseAdminDataReturn => {
             const alertsList: SystemAlert[] = [];
 
             Object.entries(data).forEach(([patientId, patientData]: [string, any]) => {
-              // Extract vitals
+              // Extract vitals - handle direct vitals object
               let latestVitals: PatientVitals | null = null;
               if (patientData.vitals) {
-                if (patientData.vitals.timestamp) {
-                  latestVitals = patientData.vitals;
-                } else {
-                  const vitalsArray = Object.values(patientData.vitals) as PatientVitals[];
-                  vitalsArray.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-                  latestVitals = vitalsArray[0] || null;
-                }
+                latestVitals = {
+                  temperature: patientData.vitals.temperature || 0,
+                  heartRate: patientData.vitals.heartRate || 0,
+                  spo2: patientData.vitals.spO2 || 0,
+                  glucose: patientData.vitals.glucose || 0,
+                  humidity: patientData.vitals.humidity || 0,
+                  timestamp: normalizeTimestamp(patientData.vitals.timestamp),
+                  bloodPressure: patientData.vitals.bloodPressure,
+                };
               }
 
-              const info = patientData.info || {};
+              // Get user profile info
+              const userInfo = patientUserMap.get(patientId);
+              const medicalProfile = patientData.medicalProfile || {};
+              const deviceStatus = patientData.status || {};
+
               patientsList.push({
                 patientId,
-                name: info.name || `Patient ${patientId}`,
-                userId: info.userId,
+                name: userInfo?.name || `Patient ${patientId}`,
+                userId: userInfo?.uid,
                 vitals: latestVitals,
                 lastUpdated: latestVitals?.timestamp || null,
-                isConnected: !!latestVitals,
-                assignedDoctorId: info.assignedDoctorId,
+                isConnected: deviceStatus.deviceConnected !== false && !!latestVitals,
+                assignedDoctorId: userInfo?.assignedDoctor,
+                diabetesType: userInfo?.diabetesType || medicalProfile.diabetesType,
+                age: userInfo?.age || medicalProfile.age,
               });
 
-              // Extract alerts
-              if (patientData.alerts) {
-                Object.entries(patientData.alerts).forEach(([alertId, alertData]: [string, any]) => {
+              // Extract current alert
+              if (patientData.alerts && patientData.alerts.message) {
+                const severity = patientData.alerts.severity?.toUpperCase();
+                alertsList.push({
+                  id: 'current_' + patientId,
+                  patientId,
+                  patientName: userInfo?.name || `Patient ${patientId}`,
+                  type: severity === 'CRITICAL' ? 'critical' : severity === 'HIGH' ? 'warning' : 'info',
+                  message: patientData.alerts.message,
+                  timestamp: normalizeTimestamp(patientData.alerts.timestamp),
+                  isRead: patientData.alerts.acknowledged || false,
+                  severity: patientData.alerts.severity,
+                });
+              }
+
+              // Extract alert history
+              if (patientData.alertHistory) {
+                Object.entries(patientData.alertHistory).forEach(([alertId, alertData]: [string, any]) => {
+                  const severity = alertData.severity?.toUpperCase();
                   alertsList.push({
                     id: alertId,
                     patientId,
-                    patientName: info.name || `Patient ${patientId}`,
-                    type: alertData.type,
+                    patientName: userInfo?.name || `Patient ${patientId}`,
+                    type: severity === 'CRITICAL' ? 'critical' : severity === 'HIGH' ? 'warning' : 'info',
                     message: alertData.message,
-                    timestamp: alertData.timestamp,
-                    isRead: alertData.isRead || false,
+                    timestamp: normalizeTimestamp(alertData.timestamp),
+                    isRead: alertData.acknowledged || false,
+                    severity: alertData.severity,
                   });
                 });
               }
             });
 
             setSystemPatients(patientsList);
-            setSystemAlerts(alertsList.sort((a, b) => 
-              new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-            ));
+            setSystemAlerts(alertsList.sort((a, b) => b.timestamp - a.timestamp));
           }
           setIsLoading(false);
         }, (err) => {

@@ -50,7 +50,32 @@ export interface UserData {
   role: UserRole;
   createdAt: string;
   patientId?: string; // For patients: links to patients/{patientId} data
-  assignedPatients?: string[]; // For doctors: list of patientIds they manage
+  assignedPatients?: string[] | Record<string, boolean>; // For doctors: can be array or object format
+  assignedDoctor?: string; // For patients: doctor UID
+  status?: string;
+  accountEnabled?: boolean;
+  profile?: {
+    name?: string;
+    age?: number;
+    gender?: string;
+    contactNumber?: string;
+    address?: string;
+    specialization?: string;
+    hospital?: string;
+    licenseNumber?: string;
+    qualification?: string;
+    experience?: string;
+    diabetesType?: string;
+    weight?: number;
+    height?: number;
+    bmi?: number;
+    emergencyContact?: string;
+    allergies?: string;
+    medications?: string[];
+    bloodGroup?: string;
+    [key: string]: any;
+  };
+  familyMembers?: Record<string, any>;
 }
 
 export type AuthUser = {
@@ -354,6 +379,14 @@ export const getPatientFamilyMembers = async (patientUid: string): Promise<UserD
   return allUsers.filter(u => familyMemberIds.includes(u.uid));
 };
 
+// Helper to normalize assignedPatients (can be object {patient_001: true} or array)
+export const normalizeAssignedPatients = (assignedPatients: string[] | Record<string, boolean> | undefined): string[] => {
+  if (!assignedPatients) return [];
+  if (Array.isArray(assignedPatients)) return assignedPatients;
+  // Object format: {patient_001: true, patient_002: true}
+  return Object.keys(assignedPatients).filter(key => assignedPatients[key]);
+};
+
 // Assign patient to doctor
 export const assignPatientToDoctor = async (doctorId: string, patientId: string): Promise<void> => {
   // Add to doctorAssignments path (matches your Firebase rules)
@@ -363,14 +396,19 @@ export const assignPatientToDoctor = async (doctorId: string, patientId: string)
     assignedAt: new Date().toISOString(),
   });
   
-  // Also update doctor's assignedPatients array
+  // Update doctor's assignedPatients as object format
   const doctorRef = ref(database, `users/${doctorId}`);
   const doctorSnapshot = await get(doctorRef);
   if (doctorSnapshot.exists()) {
-    const doctorData = doctorSnapshot.val() as UserData;
-    const currentPatients = doctorData.assignedPatients || [];
-    if (!currentPatients.includes(patientId)) {
-      await set(doctorRef, { ...doctorData, assignedPatients: [...currentPatients, patientId] });
+    const doctorData = doctorSnapshot.val();
+    const currentPatients = doctorData.assignedPatients || {};
+    // Normalize to object format
+    const patientsObj = typeof currentPatients === 'object' && !Array.isArray(currentPatients) 
+      ? currentPatients 
+      : (currentPatients as string[]).reduce((acc: Record<string, boolean>, id: string) => ({ ...acc, [id]: true }), {});
+    
+    if (!patientsObj[patientId]) {
+      await set(ref(database, `users/${doctorId}/assignedPatients`), { ...patientsObj, [patientId]: true });
     }
   }
 };
@@ -381,30 +419,49 @@ export const unassignPatientFromDoctor = async (doctorId: string, patientId: str
   const assignmentRef = ref(database, `doctorAssignments/${doctorId}/patients/${patientId}`);
   await set(assignmentRef, null);
   
-  // Also update doctor's assignedPatients array
+  // Update doctor's assignedPatients
   const doctorRef = ref(database, `users/${doctorId}`);
   const doctorSnapshot = await get(doctorRef);
   if (doctorSnapshot.exists()) {
-    const doctorData = doctorSnapshot.val() as UserData;
-    const currentPatients = doctorData.assignedPatients || [];
-    await set(doctorRef, { ...doctorData, assignedPatients: currentPatients.filter(p => p !== patientId) });
+    const doctorData = doctorSnapshot.val();
+    const currentPatients = doctorData.assignedPatients || {};
+    const patientsObj = typeof currentPatients === 'object' && !Array.isArray(currentPatients) 
+      ? { ...currentPatients }
+      : (currentPatients as string[]).reduce((acc: Record<string, boolean>, id: string) => ({ ...acc, [id]: true }), {});
+    
+    delete patientsObj[patientId];
+    await set(ref(database, `users/${doctorId}/assignedPatients`), patientsObj);
+  }
+  
+  // Also clear patient's assignedDoctor
+  const usersSnapshot = await get(usersRef);
+  if (usersSnapshot.exists()) {
+    const users = usersSnapshot.val();
+    for (const [uid, userData] of Object.entries(users)) {
+      const user = userData as any;
+      if (user.patientId === patientId && user.assignedDoctor === doctorId) {
+        await set(ref(database, `users/${uid}/assignedDoctor`), null);
+        break;
+      }
+    }
   }
 };
 
-// Get assigned patients for a doctor - updated to use doctorAssignments path
+// Get assigned patients for a doctor - supports both object and array formats
 export const getDoctorAssignments = async (doctorId: string): Promise<string[]> => {
-  // First try the new doctorAssignments path
+  // First check doctor's assignedPatients in users collection
+  const doctorRef = ref(database, `users/${doctorId}/assignedPatients`);
+  const doctorSnapshot = await get(doctorRef);
+  if (doctorSnapshot.exists()) {
+    const data = doctorSnapshot.val();
+    return normalizeAssignedPatients(data);
+  }
+  
+  // Fallback: try doctorAssignments path
   const newAssignmentsRef = ref(database, `doctorAssignments/${doctorId}/patients`);
   const newSnapshot = await get(newAssignmentsRef);
   if (newSnapshot.exists()) {
     return Object.keys(newSnapshot.val());
-  }
-  
-  // Fallback to old assignments path for backward compatibility
-  const oldAssignmentsRef = ref(database, `assignments/${doctorId}`);
-  const oldSnapshot = await get(oldAssignmentsRef);
-  if (oldSnapshot.exists()) {
-    return Object.keys(oldSnapshot.val());
   }
   
   return [];

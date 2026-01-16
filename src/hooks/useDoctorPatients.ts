@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { database, ref, onValue, getDoctorAssignments, UserData } from "@/lib/firebase";
+import { database, ref, onValue, get, getDoctorAssignments, UserData } from "@/lib/firebase";
 
 export interface PatientVitals {
   temperature: number;
@@ -7,7 +7,8 @@ export interface PatientVitals {
   spo2: number;
   glucose: number;
   humidity: number;
-  timestamp: string;
+  timestamp: number | string;
+  bloodPressure?: string;
 }
 
 export interface PatientAlert {
@@ -16,8 +17,9 @@ export interface PatientAlert {
   metric: string;
   value: number;
   message: string;
-  timestamp: string;
+  timestamp: string | number;
   isRead: boolean;
+  severity?: string;
 }
 
 export interface MLPrediction {
@@ -30,6 +32,7 @@ export interface MLPrediction {
 
 export interface PatientFullData {
   patientId: string;
+  patientUid?: string;
   name: string;
   age: number;
   condition: string;
@@ -37,9 +40,11 @@ export interface PatientFullData {
   vitals: PatientVitals | null;
   alerts: PatientAlert[];
   mlPrediction: MLPrediction | null;
-  lastUpdated: string | null;
+  lastUpdated: number | null;
   delaySeconds: number;
   isConnected: boolean;
+  diabetesType?: string;
+  assignedDoctor?: string;
 }
 
 export interface UseDoctorPatientsReturn {
@@ -51,6 +56,29 @@ export interface UseDoctorPatientsReturn {
   error: string | null;
   refreshPatients: () => void;
 }
+
+// Helper to format timestamp
+const formatTimestamp = (ts: number | string | undefined): number | null => {
+  if (!ts) return null;
+  // If it's already a number (Unix timestamp in seconds)
+  if (typeof ts === 'number') {
+    // Check if it's in seconds or milliseconds
+    return ts > 10000000000 ? ts : ts * 1000;
+  }
+  // If it's a string, try to parse it
+  const parsed = Date.parse(ts);
+  return isNaN(parsed) ? null : parsed;
+};
+
+// Helper to determine risk level from alerts
+const getRiskLevelFromAlerts = (alerts: any): "low" | "medium" | "high" | "critical" => {
+  if (!alerts) return "low";
+  const severity = alerts.severity?.toUpperCase();
+  if (severity === "CRITICAL") return "critical";
+  if (severity === "HIGH") return "high";
+  if (severity === "MEDIUM") return "medium";
+  return "low";
+};
 
 /**
  * Hook for doctor dashboard - fetches only assigned patients' data
@@ -72,9 +100,8 @@ export const useDoctorPatients = (userData: UserData | null): UseDoctorPatientsR
     const interval = setInterval(() => {
       setAssignedPatients(prev => prev.map(p => {
         if (p.lastUpdated) {
-          const lastTime = new Date(p.lastUpdated).getTime();
           const now = Date.now();
-          return { ...p, delaySeconds: Math.floor((now - lastTime) / 1000) };
+          return { ...p, delaySeconds: Math.floor((now - p.lastUpdated) / 1000) };
         }
         return p;
       }));
@@ -91,17 +118,40 @@ export const useDoctorPatients = (userData: UserData | null): UseDoctorPatientsR
 
     const unsubscribes: (() => void)[] = [];
     let patientDataMap = new Map<string, PatientFullData>();
+    let patientUserMap = new Map<string, { uid: string; profile: any; }>(); // Map patientId to user profile
 
     const fetchAssignedPatients = async () => {
       try {
         // Get doctor's assigned patients from Firebase
         const patientIds = await getDoctorAssignments(userData.uid);
         
-        // If no assignments, show empty state (no demo data)
+        // If no assignments, show empty state
         if (patientIds.length === 0) {
           setAssignedPatients([]);
           setIsLoading(false);
           return;
+        }
+
+        // First, fetch all users to get patient profiles by patientId
+        const usersRef = ref(database, 'users');
+        const usersSnapshot = await get(usersRef);
+        if (usersSnapshot.exists()) {
+          const users = usersSnapshot.val();
+          Object.entries(users).forEach(([uid, userData]: [string, any]) => {
+            if (userData.patientId && patientIds.includes(userData.patientId)) {
+              patientUserMap.set(userData.patientId, {
+                uid,
+                profile: {
+                  name: userData.profile?.name || userData.name || `Patient ${userData.patientId}`,
+                  age: userData.profile?.age || 0,
+                  diabetesType: userData.profile?.diabetesType || 'Unknown',
+                  gender: userData.profile?.gender,
+                  contactNumber: userData.profile?.contactNumber,
+                  ...userData.profile,
+                }
+              });
+            }
+          });
         }
 
         // Set up real-time listeners for each assigned patient
@@ -112,45 +162,83 @@ export const useDoctorPatients = (userData: UserData | null): UseDoctorPatientsR
             if (snapshot.exists()) {
               const data = snapshot.val();
               
-              // Extract vitals
+              // Extract vitals - handle the direct vitals object
               let latestVitals: PatientVitals | null = null;
               if (data.vitals) {
-                if (data.vitals.timestamp) {
-                  latestVitals = data.vitals;
-                } else {
-                  const vitalsArray = Object.values(data.vitals) as PatientVitals[];
-                  vitalsArray.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-                  latestVitals = vitalsArray[0] || null;
+                latestVitals = {
+                  temperature: data.vitals.temperature || 0,
+                  heartRate: data.vitals.heartRate || 0,
+                  spo2: data.vitals.spO2 || 0,
+                  glucose: data.vitals.glucose || 0,
+                  humidity: data.vitals.humidity || 0,
+                  timestamp: data.vitals.timestamp || 0,
+                  bloodPressure: data.vitals.bloodPressure,
+                };
+              }
+
+              // Extract alerts - handle the alerts object structure
+              const alertsList: PatientAlert[] = [];
+              if (data.alerts) {
+                // Current alert
+                if (data.alerts.message) {
+                  alertsList.push({
+                    id: 'current',
+                    type: data.alerts.severity === 'CRITICAL' ? 'critical' : data.alerts.severity === 'HIGH' ? 'warning' : 'info',
+                    metric: 'vitals',
+                    value: 0,
+                    message: data.alerts.message,
+                    timestamp: data.alerts.timestamp,
+                    isRead: data.alerts.acknowledged || false,
+                    severity: data.alerts.severity,
+                  });
                 }
               }
 
-              // Extract alerts
-              const alerts: PatientAlert[] = data.alerts 
-                ? Object.entries(data.alerts).map(([key, value]: [string, any]) => ({
+              // Extract alert history
+              if (data.alertHistory) {
+                Object.entries(data.alertHistory).slice(-5).forEach(([key, value]: [string, any]) => {
+                  alertsList.push({
                     id: key,
-                    patientId,
-                    ...value,
-                  }))
-                : [];
+                    type: value.severity === 'CRITICAL' ? 'critical' : value.severity === 'HIGH' ? 'warning' : 'info',
+                    metric: 'vitals',
+                    value: 0,
+                    message: value.message,
+                    timestamp: value.timestamp,
+                    isRead: value.acknowledged || false,
+                    severity: value.severity,
+                  });
+                });
+              }
 
-              // Extract ML prediction
-              const mlPrediction: MLPrediction | null = data.ml || null;
+              // Get ML prediction / risk level
+              const mlPrediction: MLPrediction | null = data.alerts ? {
+                riskLevel: getRiskLevelFromAlerts(data.alerts),
+                anomalyStatus: data.alerts.active || false,
+                confidence: 0.85,
+                timestamp: String(data.alerts.timestamp || Date.now()),
+              } : null;
 
-              // Extract patient info from Firebase
-              const info = data.info || {};
+              // Get patient info from users collection
+              const userInfo = patientUserMap.get(patientId);
+              const medicalProfile = data.medicalProfile || {};
+
+              const lastUpdateTs = formatTimestamp(latestVitals?.timestamp);
+              const isDeviceConnected = data.status?.deviceConnected !== false;
 
               patientDataMap.set(patientId, {
                 patientId,
-                name: info.name || `Patient ${patientId}`,
-                age: info.age || 0,
-                condition: info.condition || "Unknown",
-                roomNumber: info.roomNumber || "N/A",
+                patientUid: userInfo?.uid,
+                name: userInfo?.profile?.name || `Patient ${patientId}`,
+                age: userInfo?.profile?.age || medicalProfile.age || 0,
+                condition: userInfo?.profile?.diabetesType || medicalProfile.diabetesType || "Unknown",
+                roomNumber: "N/A",
                 vitals: latestVitals,
-                alerts,
+                alerts: alertsList,
                 mlPrediction,
-                lastUpdated: latestVitals?.timestamp || null,
-                delaySeconds: latestVitals ? Math.floor((Date.now() - new Date(latestVitals.timestamp).getTime()) / 1000) : 0,
-                isConnected: !!latestVitals,
+                lastUpdated: lastUpdateTs,
+                delaySeconds: lastUpdateTs ? Math.floor((Date.now() - lastUpdateTs) / 1000) : 0,
+                isConnected: isDeviceConnected && !!latestVitals,
+                diabetesType: medicalProfile.diabetesType,
               });
 
               // Update state
@@ -159,7 +247,11 @@ export const useDoctorPatients = (userData: UserData | null): UseDoctorPatientsR
               // Aggregate all alerts
               const allPatientAlerts = Array.from(patientDataMap.values())
                 .flatMap(p => p.alerts.map(a => ({ ...a, patientName: p.name })))
-                .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+                .sort((a, b) => {
+                  const tsA = formatTimestamp(a.timestamp) || 0;
+                  const tsB = formatTimestamp(b.timestamp) || 0;
+                  return tsB - tsA;
+                });
               setAllAlerts(allPatientAlerts);
             }
           });
@@ -181,7 +273,7 @@ export const useDoctorPatients = (userData: UserData | null): UseDoctorPatientsR
     return () => {
       unsubscribes.forEach(unsub => unsub());
     };
-  }, [userData]);
+  }, [userData, refreshTrigger]);
 
   const criticalCount = assignedPatients.filter(p => 
     p.mlPrediction?.riskLevel === "critical" || 

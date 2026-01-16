@@ -101,6 +101,11 @@ const App = () => (
                 <PatientDashboard />
               </ProtectedRoute>
             } />
+            <Route path="/patient/doctor" element={
+              <ProtectedRoute allowedRoles={["patient"]}>
+                <PatientDashboard />
+              </ProtectedRoute>
+            } />
             
             {/* Doctor Routes - Protected (legacy) */}
             <Route path="/doctor/dashboard" element={

@@ -231,7 +231,7 @@ const PatientDashboard = () => {
                   className="flex items-center gap-2 data-[state=active]:gradient-bg data-[state=active]:text-white"
                 >
                   <UserCheck className="w-4 h-4" />
-                  <span>My Doctor</span>
+                  <span>My Doctor afasdasd</span>
                 </TabsTrigger>
               </motion.div>
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>

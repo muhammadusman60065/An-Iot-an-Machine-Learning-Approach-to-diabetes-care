@@ -291,9 +291,7 @@ const PatientDashboard = () => {
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.3 }}
                   className="max-w-2xl mx-auto"
-                >
-                  <AssignedDoctor patientUid={userData?.uid || ""} />
-                </motion.div>
+                ></motion.div>
               </TabsContent>
 
               {/* Reports Tab */}

@@ -13,7 +13,6 @@ import {
   BarChart3,
   UserCog,
   User,
-  UserCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/Logo";
@@ -33,7 +32,6 @@ const navigationConfig = {
   patient: [
     { label: "Dashboard", icon: LayoutDashboard, path: "/patient/dashboard" },
     { label: "Health Data", icon: Activity, path: "/patient/health-data" },
-    { label: "My Doctor", icon: UserCheck, path: "/patient/doctor" },
     { label: "Alerts", icon: Bell, path: "/patient/alerts" },
     { label: "Reports", icon: FileText, path: "/patient/reports" },
     { label: "Settings", icon: Settings, path: "/patient/settings" },

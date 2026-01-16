@@ -13,7 +13,7 @@ import DiabetesChatbot from "@/components/chatbot/DiabetesChatbot";
 import { Loader2, User, Activity, Bell, FileText, Settings, UserCheck } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion, AnimatePresence } from "framer-motion";
-console.log("AssignedDoctor");
+console.log(AssignedDoctor);
 // Map routes to tab values
 const routeToTab: Record<string, string> = {
   "/patient/dashboard": "overview",

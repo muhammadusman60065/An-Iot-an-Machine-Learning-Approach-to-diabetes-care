@@ -320,7 +320,10 @@ const PatientDashboard = () => {
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <SettingsSection patientName={userData?.name || ""} patientEmail={userData?.email || ""} />
+                  <SettingsSection
+                    patientName={userData?.name || ""}
+                    patientEmail={(userData?.email || "", userData?.assignedDoctor || "")}
+                  />
                 </motion.div>
               </TabsContent>
             </AnimatePresence>

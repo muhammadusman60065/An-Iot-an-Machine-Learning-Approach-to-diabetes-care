@@ -138,19 +138,25 @@ const AddPatientByIdDialog: React.FC<AddPatientByIdDialogProps> = ({
   };
 
   const handleAddPatient = async () => {
-    if (!searchResult?.found || !searchResult.patientUid) return;
+    if (!searchResult?.found || !searchResult.patientUid || !searchResult.patientId) return;
 
     setIsAdding(true);
     try {
-      // Update doctor's assignedPatients
-      const updatedPatients = [...doctorPatients, searchResult.patientId!];
-      await update(ref(database, `users/${doctorUid}`), {
-        assignedPatients: updatedPatients
+      // Update doctor's assignedPatients using OBJECT format (not array)
+      // Firebase structure: assignedPatients: { patient_001: true, patient_002: true }
+      await update(ref(database, `users/${doctorUid}/assignedPatients`), {
+        [searchResult.patientId]: true
       });
 
       // Update patient's assignedDoctor
       await update(ref(database, `users/${searchResult.patientUid}`), {
         assignedDoctor: doctorUid
+      });
+
+      // Also update doctorAssignments node for comprehensive tracking
+      await update(ref(database, `doctorAssignments/${doctorUid}/patients/${searchResult.patientId}`), {
+        assignedDate: new Date().toISOString().split('T')[0],
+        lastConsultation: new Date().toISOString().split('T')[0]
       });
 
       toast({

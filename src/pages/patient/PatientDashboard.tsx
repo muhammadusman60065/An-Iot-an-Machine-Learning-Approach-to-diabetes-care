@@ -13,7 +13,7 @@ import DiabetesChatbot from "@/components/chatbot/DiabetesChatbot";
 import { Loader2, User, Activity, Bell, FileText, Settings, UserCheck } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion, AnimatePresence } from "framer-motion";
-console.log("AlertsSection", AlertsSection);
+
 // Map routes to tab values
 const routeToTab: Record<string, string> = {
   "/patient/dashboard": "overview",
@@ -37,7 +37,7 @@ const PatientDashboard = () => {
   const { userData } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  console.log(userData);
+
   // Derive initial tab from current route
   const getTabFromRoute = (pathname: string): string => {
     return routeToTab[pathname] || "overview";
@@ -231,7 +231,6 @@ const PatientDashboard = () => {
                   className="flex items-center gap-2 data-[state=active]:gradient-bg data-[state=active]:text-white"
                 >
                   <UserCheck className="w-4 h-4" />
-                  <span>My Doctor</span>
                 </TabsTrigger>
               </motion.div>
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>

@@ -271,7 +271,9 @@ export const VitalsSection: React.FC<VitalsSectionProps> = ({ vitals, status, is
         </div>
         <div className="text-sm text-muted-foreground">
           Last Update: <span className="font-medium text-foreground">
-            {vitals.timestamp ? new Date(vitals.timestamp).toLocaleString() : 'Just now'}
+            {vitals.timestamp ? new Date(typeof vitals.timestamp === 'number' 
+              ? (vitals.timestamp > 10000000000 ? vitals.timestamp : vitals.timestamp * 1000) 
+              : vitals.timestamp).toLocaleString() : 'Just now'}
           </span>
         </div>
       </motion.div>

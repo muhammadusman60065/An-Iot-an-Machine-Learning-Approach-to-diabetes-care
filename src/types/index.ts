@@ -25,12 +25,14 @@ export interface Vitals {
   heartRate: number;
   spO2: number;
   glucose: number;
-  timestamp: number;
+  timestamp: number; // Unix timestamp in milliseconds
+  bloodPressure?: string;
 }
 
 export interface DeviceStatus {
   deviceConnected: boolean;
-  max30100_online: boolean;
+  max30100_online?: boolean;
+  max30102_online?: boolean;
   rssi: number;
   lastUpdate?: string;
 }

@@ -10,6 +10,7 @@ export interface HistoricalReading {
   spO2: number;
   glucose: number;
   humidity: number;
+  bloodPressure?: string;
 }
 
 export interface AlertHistoryItem {
@@ -30,6 +31,17 @@ export interface PatientDashboardData {
   lastUpdated: Date | null;
   loading: boolean;
 }
+
+// Helper to convert Unix timestamp (seconds) to milliseconds
+const normalizeTimestamp = (ts: number | string | undefined): number => {
+  if (!ts) return 0;
+  if (typeof ts === 'string') {
+    const parsed = Date.parse(ts);
+    return isNaN(parsed) ? 0 : parsed;
+  }
+  // Unix timestamps in seconds are typically < 10 billion
+  return ts > 10000000000 ? ts : ts * 1000;
+};
 
 export const usePatientDashboard = (patientId: string | null | undefined): PatientDashboardData => {
   const [vitals, setVitals] = useState<Vitals | null>(null);
@@ -53,7 +65,15 @@ export const usePatientDashboard = (patientId: string | null | undefined): Patie
     const vitalsUnsub = onValue(vitalsRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
-        setVitals(data);
+        // Normalize vitals data with proper field mapping
+        setVitals({
+          temperature: data.temperature || 0,
+          humidity: data.humidity || 0,
+          heartRate: data.heartRate || 0,
+          spO2: data.spO2 || 0,
+          glucose: data.glucose || 0,
+          timestamp: normalizeTimestamp(data.timestamp),
+        });
         setLastUpdated(new Date());
       }
       setLoading(false);
@@ -64,7 +84,13 @@ export const usePatientDashboard = (patientId: string | null | undefined): Patie
     const statusRef = ref(database, `patients/${patientId}/status`);
     const statusUnsub = onValue(statusRef, (snapshot) => {
       if (snapshot.exists()) {
-        setStatus(snapshot.val());
+        const data = snapshot.val();
+        setStatus({
+          deviceConnected: data.deviceConnected !== false,
+          max30100_online: data.max30102_online || data.max30100_online || false,
+          rssi: data.rssi || 0,
+          lastUpdate: data.lastUpdate,
+        });
       }
     });
     unsubscribes.push(statusUnsub);
@@ -73,7 +99,18 @@ export const usePatientDashboard = (patientId: string | null | undefined): Patie
     const alertRef = ref(database, `patients/${patientId}/alerts`);
     const alertUnsub = onValue(alertRef, (snapshot) => {
       if (snapshot.exists()) {
-        setCurrentAlert(snapshot.val());
+        const data = snapshot.val();
+        // Handle the alert object structure from Firebase
+        if (data.message) {
+          setCurrentAlert({
+            active: data.active || false,
+            message: data.message,
+            timestamp: String(normalizeTimestamp(data.timestamp)),
+            severity: data.severity || 'LOW',
+          });
+        } else {
+          setCurrentAlert(null);
+        }
       } else {
         setCurrentAlert(null);
       }
@@ -87,7 +124,10 @@ export const usePatientDashboard = (patientId: string | null | undefined): Patie
         const data = snapshot.val();
         const alerts: AlertHistoryItem[] = Object.entries(data).map(([key, value]: [string, any]) => ({
           id: key,
-          ...value,
+          message: value.message || '',
+          timestamp: normalizeTimestamp(value.timestamp),
+          severity: value.severity || 'LOW',
+          active: value.active || false,
         }));
         // Sort by timestamp descending
         alerts.sort((a, b) => b.timestamp - a.timestamp);
@@ -103,11 +143,19 @@ export const usePatientDashboard = (patientId: string | null | undefined): Patie
     const historyUnsub = onValue(historyRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
-        const readings: HistoricalReading[] = Object.values(data);
+        const readings: HistoricalReading[] = Object.values(data).map((r: any) => ({
+          timestamp: normalizeTimestamp(r.timestamp),
+          temperature: r.temperature || 0,
+          heartRate: r.heartRate || 0,
+          spO2: r.spO2 || 0,
+          glucose: r.glucose || 0,
+          humidity: r.humidity || 0,
+          bloodPressure: r.bloodPressure,
+        }));
         
         // Filter to last 24 hours and sort
-        const now = Math.floor(Date.now() / 1000);
-        const twentyFourHoursAgo = now - (24 * 60 * 60);
+        const now = Date.now();
+        const twentyFourHoursAgo = now - (24 * 60 * 60 * 1000);
         
         const filtered = readings
           .filter(r => r.timestamp >= twentyFourHoursAgo)

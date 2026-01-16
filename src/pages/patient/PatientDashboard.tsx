@@ -284,17 +284,6 @@ const PatientDashboard = () => {
               </TabsContent>
 
               {/* My Doctor Tab */}
-              <TabsContent value="doctor" className="mt-6" key="doctor">
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                  className="max-w-2xl mx-auto"
-                >
-                  <AssignedDoctor patientUid={userData?.uid || ""} />
-                </motion.div>
-              </TabsContent>
 
               {/* Reports Tab */}
               <TabsContent value="reports" className="mt-6" key="reports">

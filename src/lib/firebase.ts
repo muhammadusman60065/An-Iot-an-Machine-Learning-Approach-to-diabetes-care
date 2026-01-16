@@ -449,21 +449,32 @@ export const unassignPatientFromDoctor = async (doctorId: string, patientId: str
 
 // Get assigned patients for a doctor - supports both object and array formats
 export const getDoctorAssignments = async (doctorId: string): Promise<string[]> => {
+  console.log("getDoctorAssignments called for:", doctorId);
+  
   // First check doctor's assignedPatients in users collection
   const doctorRef = ref(database, `users/${doctorId}/assignedPatients`);
   const doctorSnapshot = await get(doctorRef);
+  
   if (doctorSnapshot.exists()) {
     const data = doctorSnapshot.val();
-    return normalizeAssignedPatients(data);
+    console.log("Found assignedPatients data:", data);
+    const result = normalizeAssignedPatients(data);
+    console.log("Normalized patient IDs:", result);
+    return result;
   }
+  
+  console.log("No assignedPatients in user profile, checking doctorAssignments path");
   
   // Fallback: try doctorAssignments path
   const newAssignmentsRef = ref(database, `doctorAssignments/${doctorId}/patients`);
   const newSnapshot = await get(newAssignmentsRef);
   if (newSnapshot.exists()) {
-    return Object.keys(newSnapshot.val());
+    const result = Object.keys(newSnapshot.val());
+    console.log("Found patients in doctorAssignments:", result);
+    return result;
   }
   
+  console.log("No assignments found for doctor");
   return [];
 };
 

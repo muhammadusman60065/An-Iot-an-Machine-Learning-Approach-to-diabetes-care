@@ -122,11 +122,15 @@ export const useDoctorPatients = (userData: UserData | null): UseDoctorPatientsR
 
     const fetchAssignedPatients = async () => {
       try {
+        console.log("Fetching patients for doctor:", userData.uid);
+        
         // Get doctor's assigned patients from Firebase
         const patientIds = await getDoctorAssignments(userData.uid);
+        console.log("Found assigned patient IDs:", patientIds);
         
         // If no assignments, show empty state
         if (patientIds.length === 0) {
+          console.log("No patient assignments found for doctor");
           setAssignedPatients([]);
           setIsLoading(false);
           return;
@@ -137,8 +141,11 @@ export const useDoctorPatients = (userData: UserData | null): UseDoctorPatientsR
         const usersSnapshot = await get(usersRef);
         if (usersSnapshot.exists()) {
           const users = usersSnapshot.val();
+          console.log("Found users:", Object.keys(users).length);
+          
           Object.entries(users).forEach(([uid, userData]: [string, any]) => {
             if (userData.patientId && patientIds.includes(userData.patientId)) {
+              console.log("Matched user to patient ID:", userData.patientId, "->", userData.profile?.name || userData.name);
               patientUserMap.set(userData.patientId, {
                 uid,
                 profile: {

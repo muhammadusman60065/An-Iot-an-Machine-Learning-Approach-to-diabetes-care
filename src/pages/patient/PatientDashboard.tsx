@@ -37,7 +37,7 @@ const PatientDashboard = () => {
   const { userData } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-
+  console.log(userData);
   // Derive initial tab from current route
   const getTabFromRoute = (pathname: string): string => {
     return routeToTab[pathname] || "overview";
@@ -231,6 +231,7 @@ const PatientDashboard = () => {
                   className="flex items-center gap-2 data-[state=active]:gradient-bg data-[state=active]:text-white"
                 >
                   <UserCheck className="w-4 h-4" />
+                  <span>My Doctor</span>
                 </TabsTrigger>
               </motion.div>
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -280,17 +281,6 @@ const PatientDashboard = () => {
                 >
                   <AlertsSection currentAlert={currentAlert} alertHistory={alertHistory} />
                 </motion.div>
-              </TabsContent>
-
-              {/* My Doctor Tab */}
-              <TabsContent value="doctor" className="mt-6" key="doctor">
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                  className="max-w-2xl mx-auto"
-                ></motion.div>
               </TabsContent>
 
               {/* Reports Tab */}

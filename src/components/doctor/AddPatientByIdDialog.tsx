@@ -82,12 +82,12 @@ const AddPatientByIdDialog: React.FC<AddPatientByIdDialogProps> = ({
     setSearchResult(null);
 
     try {
-      // Step 1: Check if patient data exists in patients node
+      // Step 1: Check if patient data exists in patients node (IoT data)
       const patientDataRef = ref(database, `patients/${trimmedId}`);
       const patientDataSnap = await get(patientDataRef);
       const hasVitals = patientDataSnap.exists();
 
-      // Step 2: Find patient user by patientId
+      // Step 2: Find patient user by patientId in users collection
       const usersRef = ref(database, 'users');
       const usersSnap = await get(usersRef);
 
@@ -100,13 +100,14 @@ const AddPatientByIdDialog: React.FC<AddPatientByIdDialogProps> = ({
           const user = userData as any;
           if (user.patientId === trimmedId) {
             foundPatientUid = uid;
-            foundPatientName = user.profile?.name || user.name || 'Unknown Patient';
+            foundPatientName = user.profile?.name || user.name || `Patient ${trimmedId}`;
             break;
           }
         }
       }
 
       if (foundPatientUid) {
+        // Found user with this patientId
         setSearchResult({
           found: true,
           patientUid: foundPatientUid,
@@ -115,15 +116,20 @@ const AddPatientByIdDialog: React.FC<AddPatientByIdDialogProps> = ({
           hasVitals,
         });
       } else if (hasVitals) {
-        // Vitals exist but no user account
+        // Vitals exist but no user account - STILL ALLOW ADDING
+        // Doctor can add patient by device ID even without user account
         setSearchResult({
-          found: false,
-          message: `Patient device ${trimmedId} is sending data, but no user account is linked to it yet.`,
+          found: true,
+          patientUid: undefined, // No user account
+          patientName: `Device ${trimmedId}`,
+          patientId: trimmedId,
+          hasVitals: true,
+          message: "Device found with vitals data. No user account linked yet.",
         });
       } else {
         setSearchResult({
           found: false,
-          message: `Patient ${trimmedId} not found in the system. Please check the ID.`,
+          message: `Patient ${trimmedId} not found. No device data or user account exists.`,
         });
       }
     } catch (error) {
@@ -138,7 +144,7 @@ const AddPatientByIdDialog: React.FC<AddPatientByIdDialogProps> = ({
   };
 
   const handleAddPatient = async () => {
-    if (!searchResult?.found || !searchResult.patientUid || !searchResult.patientId) return;
+    if (!searchResult?.found || !searchResult.patientId) return;
 
     setIsAdding(true);
     try {
@@ -148,13 +154,16 @@ const AddPatientByIdDialog: React.FC<AddPatientByIdDialogProps> = ({
         [searchResult.patientId]: true
       });
 
-      // Update patient's assignedDoctor
-      await update(ref(database, `users/${searchResult.patientUid}`), {
-        assignedDoctor: doctorUid
-      });
+      // Update patient's assignedDoctor only if user account exists
+      if (searchResult.patientUid) {
+        await update(ref(database, `users/${searchResult.patientUid}`), {
+          assignedDoctor: doctorUid
+        });
+      }
 
       // Also update doctorAssignments node for comprehensive tracking
       await update(ref(database, `doctorAssignments/${doctorUid}/patients/${searchResult.patientId}`), {
+        patientId: searchResult.patientId,
         assignedDate: new Date().toISOString().split('T')[0],
         lastConsultation: new Date().toISOString().split('T')[0]
       });

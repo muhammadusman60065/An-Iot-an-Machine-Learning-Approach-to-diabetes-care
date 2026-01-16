@@ -7,10 +7,10 @@ import VitalsSection from "@/components/patient/VitalsSection";
 import VitalsCharts from "@/components/patient/VitalsCharts";
 import AlertsSection from "@/components/patient/AlertsSection";
 import ReportsSection from "@/components/patient/ReportsSection";
-import AppointmentsSection from "@/components/patient/AppointmentsSection";
 import SettingsSection from "@/components/patient/SettingsSection";
+import AssignedDoctor from "@/components/patient/AssignedDoctor";
 import DiabetesChatbot from "@/components/chatbot/DiabetesChatbot";
-import { Loader2, User, Activity, Bell, Calendar, FileText, Settings } from "lucide-react";
+import { Loader2, User, Activity, Bell, FileText, Settings, UserCheck } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -18,6 +18,7 @@ import { motion, AnimatePresence } from "framer-motion";
 const routeToTab: Record<string, string> = {
   '/patient/dashboard': 'overview',
   '/patient/health-data': 'overview',
+  '/patient/doctor': 'doctor',
   '/patient/alerts': 'alerts',
   '/patient/reports': 'reports',
   '/patient/settings': 'settings',
@@ -26,8 +27,8 @@ const routeToTab: Record<string, string> = {
 // Map tab values to routes
 const tabToRoute: Record<string, string> = {
   'overview': '/patient/dashboard',
+  'doctor': '/patient/doctor',
   'alerts': '/patient/alerts',
-  'appointments': '/patient/dashboard',
   'reports': '/patient/reports',
   'settings': '/patient/settings',
 };
@@ -237,9 +238,9 @@ const PatientDashboard = () => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                <TabsTrigger value="appointments" className="flex items-center gap-2 data-[state=active]:gradient-bg data-[state=active]:text-white">
-                  <Calendar className="w-4 h-4" />
-                  <span>Appointments</span>
+                <TabsTrigger value="doctor" className="flex items-center gap-2 data-[state=active]:gradient-bg data-[state=active]:text-white">
+                  <UserCheck className="w-4 h-4" />
+                  <span>My Doctor</span>
                 </TabsTrigger>
               </motion.div>
               <motion.div
@@ -299,15 +300,16 @@ const PatientDashboard = () => {
                 </motion.div>
               </TabsContent>
 
-              {/* Appointments Tab */}
-              <TabsContent value="appointments" className="mt-6" key="appointments">
+              {/* My Doctor Tab */}
+              <TabsContent value="doctor" className="mt-6" key="doctor">
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.3 }}
+                  className="max-w-2xl mx-auto"
                 >
-                  <AppointmentsSection patientId={patientId || ''} />
+                  <AssignedDoctor patientUid={userData?.uid || ''} />
                 </motion.div>
               </TabsContent>
 

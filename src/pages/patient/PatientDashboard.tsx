@@ -8,9 +8,8 @@ import VitalsCharts from "@/components/patient/VitalsCharts";
 import AlertsSection from "@/components/patient/AlertsSection";
 import ReportsSection from "@/components/patient/ReportsSection";
 import SettingsSection from "@/components/patient/SettingsSection";
-import AssignedDoctor from "@/components/patient/AssignedDoctor";
 import DiabetesChatbot from "@/components/chatbot/DiabetesChatbot";
-import { Loader2, User, Activity, Bell, FileText, Settings, UserCheck } from "lucide-react";
+import { Loader2, User, Activity, Bell, FileText, Settings } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -18,7 +17,6 @@ import { motion, AnimatePresence } from "framer-motion";
 const routeToTab: Record<string, string> = {
   "/patient/dashboard": "overview",
   "/patient/health-data": "overview",
-  "/patient/doctor": "doctor",
   "/patient/alerts": "alerts",
   "/patient/reports": "reports",
   "/patient/settings": "settings",
@@ -27,12 +25,10 @@ const routeToTab: Record<string, string> = {
 // Map tab values to routes
 const tabToRoute: Record<string, string> = {
   overview: "/patient/dashboard",
-  doctor: "/patient/doctor",
   alerts: "/patient/alerts",
   reports: "/patient/reports",
   settings: "/patient/settings",
 };
-
 const PatientDashboard = () => {
   const { userData } = useAuth();
   const location = useLocation();
@@ -300,7 +296,7 @@ const PatientDashboard = () => {
                 >
                   <SettingsSection
                     patientName={userData?.name || ""}
-                    patientEmail={(userData?.email || "", userData?.assignedDoctor || "")}
+                    patientEmail={userData?.email || ""}
                   />
                 </motion.div>
               </TabsContent>

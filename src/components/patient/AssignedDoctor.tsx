@@ -13,7 +13,9 @@ interface DoctorInfo {
   hospital: string;
   contactNumber: string;
   licenseNumber?: string;
-  qualifications?: string;
+  qualification?: string;
+  experience?: string;
+  consultationHours?: string;
   email?: string;
 }
 
@@ -63,7 +65,9 @@ export const AssignedDoctor: React.FC<AssignedDoctorProps> = ({ patientUid }) =>
             hospital: doctorData.profile?.hospital || 'N/A',
             contactNumber: doctorData.profile?.contactNumber || doctorData.contactNumber || 'N/A',
             licenseNumber: doctorData.profile?.licenseNumber,
-            qualifications: doctorData.profile?.qualifications,
+            qualification: doctorData.profile?.qualification || doctorData.profile?.qualifications,
+            experience: doctorData.profile?.experience,
+            consultationHours: doctorData.profile?.consultationHours,
             email: doctorData.email
           });
         } else {
@@ -240,16 +244,44 @@ export const AssignedDoctor: React.FC<AssignedDoctorProps> = ({ patientUid }) =>
               </motion.div>
             )}
 
-            {/* Qualifications */}
-            {doctor.qualifications && (
+            {/* Qualification */}
+            {doctor.qualification && (
               <motion.div 
                 className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors"
                 whileHover={{ x: 5 }}
               >
                 <GraduationCap className="w-5 h-5 text-primary mt-0.5" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Qualifications</p>
-                  <p className="text-foreground font-medium">{doctor.qualifications}</p>
+                  <p className="text-sm text-muted-foreground">Qualification</p>
+                  <p className="text-foreground font-medium">{doctor.qualification}</p>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Experience */}
+            {doctor.experience && (
+              <motion.div 
+                className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors"
+                whileHover={{ x: 5 }}
+              >
+                <Award className="w-5 h-5 text-primary mt-0.5" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Experience</p>
+                  <p className="text-foreground font-medium">{doctor.experience}</p>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Consultation Hours */}
+            {doctor.consultationHours && (
+              <motion.div 
+                className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors"
+                whileHover={{ x: 5 }}
+              >
+                <Phone className="w-5 h-5 text-primary mt-0.5" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Consultation Hours</p>
+                  <p className="text-foreground font-medium">{doctor.consultationHours}</p>
                 </div>
               </motion.div>
             )}

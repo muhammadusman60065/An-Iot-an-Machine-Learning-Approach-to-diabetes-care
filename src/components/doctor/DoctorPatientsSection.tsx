@@ -1,11 +1,11 @@
 import React, { useState, useCallback } from 'react';
-import { Users, Search, Thermometer, Heart, Wind, Droplets, AlertTriangle, Wifi, WifiOff, Clock } from 'lucide-react';
+import { Users, Search, Thermometer, Heart, Wind, Droplets, AlertTriangle, Wifi, WifiOff, Clock, Activity } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useDoctorPatients, PatientFullData } from '@/hooks/useDoctorPatients';
 import { UserData } from '@/lib/firebase';
 import { Loader2 } from 'lucide-react';
-import AddPatientDialog from './AddPatientDialog';
+import AddPatientByIdDialog from './AddPatientByIdDialog';
 
 interface DoctorPatientsSectionProps {
   userData: UserData | null;
@@ -177,14 +177,23 @@ const DoctorPatientsSection: React.FC<DoctorPatientsSectionProps> = ({ userData 
     );
   }
 
+  // Get array of patient IDs for the dialog
+  const doctorPatientIds = assignedPatients.map(p => p.patientId);
+
   return (
     <div className="space-y-6">
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold text-foreground">My Patients</h1>
-          <p className="text-muted-foreground">View and monitor your assigned patients</p>
+          <p className="text-muted-foreground">View and monitor your assigned patients ({assignedPatients.length} patients)</p>
         </div>
-        {userData && <AddPatientDialog doctorId={userData.uid} onPatientAdded={handlePatientAdded} />}
+        {userData && (
+          <AddPatientByIdDialog 
+            doctorUid={userData.uid} 
+            doctorPatients={doctorPatientIds}
+            onPatientAdded={handlePatientAdded} 
+          />
+        )}
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
